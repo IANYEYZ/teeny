@@ -1,0 +1,16 @@
+def toString(value: any):
+    if isinstance(value, list):
+        return "[" + ", ".join(value) + "]"
+    return str(value)
+
+class AST:
+    def __init__(self, typ: str, children: list["AST"] = [], value: any = None):
+        self.typ = typ; self.children = children; self.value = value
+    def toString(self, tab: int = 0) -> str:
+        res = ""
+        res += "    " * tab + self.typ + ' ' + (toString(self.value) if self.value != None else "") + '\n'
+        for c in self.children:
+            res += c.toString(tab + 1)
+        return res
+    def __repr__(self):
+        return self.toString()
