@@ -155,7 +155,7 @@ class Env(dict):
             return self.get(name)
         else:
             if self.outer == None:
-                raise RuntimeError(f"Can't find variable {name}, current env {self}")
+                raise RuntimeError(f"Can't find variable {name}, current env {self}\n")
             return self.outer.read(name)
     
     def write(self, name, val):

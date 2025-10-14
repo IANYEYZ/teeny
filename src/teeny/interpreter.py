@@ -25,10 +25,10 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
                 value.append(interpret(c, env))
         return value
     elif ast.typ == "FN":
-        value = Closure(ast.value, ast.children, Env(env), False)
+        value = Closure(ast.value, ast.children, Env(outer = env), False)
         return value
     elif ast.typ == "FN-DYNAMIC":
-        value = Closure(ast.value, ast.children, Env(env), True)
+        value = Closure(ast.value, ast.children, Env(outer = env), True)
         return value
     elif ast.typ == "CALL":
         value = interpret(ast.children[0], env)
@@ -98,8 +98,9 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
         return lst
     elif ast.typ == "BLOCK":
         lst = Nil()
+        nEnv = Env(env)
         for b in ast.children:
-            lst = interpret(b, Env(env))
+            lst = interpret(b, nEnv)
         return lst
     elif ast.typ == "OP":
         if ast.value == "+":
@@ -131,6 +132,7 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
         if ast.value == ":=":
             # The left is guarenteed a name or a Table
             val = None
+            lhs = None
             if ast.children[0].typ == 'NAME':
                 lhs = ast.children[0].value
                 val = interpret(ast.children[1], env)
