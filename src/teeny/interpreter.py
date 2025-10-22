@@ -74,20 +74,15 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
     elif ast.typ == "IF":
         value = interpret(ast.children[0], env)
         if isTruthy(value):
-            blocks = ast.children[1:]
-            lst = Nil()
-            for b in blocks:
-                if b.typ == "ELSE": break
-                lst = interpret(b, env)
-            return lst
-        else:
-            if ast.children[-1].typ == "ELSE":
-                blocks = ast.children[-1].children
-                lst = Nil()
-                for b in blocks:
-                    lst = interpret(b, env)
-                return lst
-            return Nil()
+            return interpret(ast.children[1])
+        for c in ast.children[2:]:
+            if c.typ == "ELIF":
+                value = interpret(c.children[0], env)
+                if isTruthy(value):
+                    return interpret(c.children[1], env)
+        if ast.children[-1].typ == "ELSE":
+            return interpret(ast.children[-1].children[0])
+        return Nil()
     elif ast.typ == "WHILE":
         res = Nil()
         while isTruthy(interpret(ast.children[0], env)):

@@ -23,11 +23,15 @@ def suffixOperators(op) -> int:
         '!': 17, '[': 17, '(': 17
     }.get(op)
 
-def advance(tokens: list[Token], p: int, expectedTyp: str):
-    if tokens[p].typ == expectedTyp: return p + 1
+def advance(tokens: list[Token], p: int, expectedTyp: str | list[str]):
+    if not isinstance(expectedTyp, list):
+        expectedTyp = [expectedTyp]
+    for typ in expectedTyp:
+        if tokens[p].typ == typ: break
     else:
         raise SyntaxError(f"Unexpected token: found {tokens[p].value}, except {expectedTyp}"
-                          , tokens[p].line, tokens[p].col)
+                        , tokens[p].line, tokens[p].col)
+    return p + 1
 
 def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     while tokens[p].typ == "SEMI": p += 1
@@ -72,11 +76,20 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
         if p >= len(tokens) or (tokens[p].typ != "ELSE" and tokens[p].typ != "ELIF"):
             lhs = AST("IF", [lhs, *children])
         else:
-            p = advance(tokens, p, "ELSE")
-            rhs, p = parse(tokens, p, 0)
-            children_ = [rhs]
-            rhs = AST("ELSE", children_)
-            lhs = AST("IF", [lhs, *children, rhs])
+            while p < len(tokens) and (tokens[p].typ == "ELSE" or tokens[p].typ == "ELIF"):
+                if tokens[p].typ == "ELSE":
+                    p = advance(tokens, p, "ELSE")
+                    rhs, p = parse(tokens, p, 0)
+                    children_ = [rhs]
+                    rhs = AST("ELSE", children_)
+                    children.append(rhs)
+                else:
+                    p = advance(tokens, p, "ELIF")
+                    expr, p = parse(tokens, p, 0)
+                    rhs, p = parse(tokens, p, 0)
+                    rhs = AST("ELIF", [expr, rhs])
+                    children.append(rhs)
+            lhs = AST("IF", [lhs, *children])
     elif tokens[p].typ == "WHILE":
         p = advance(tokens, p, "WHILE")
         lhs, p = parse(tokens, p, 0)
@@ -137,7 +150,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             or op.typ == "RPAREN" or op.typ == "RSQPAREN" or op.typ == "RSHPAREN" or op.typ == "LSHPAREN" \
             or op.typ == "COMMA" or op.typ == "COLON" or op.typ == "IF" or op.typ == "FN" \
             or op.typ == "WHILE" or op.typ == "THEN" or op.typ == "END" or op.typ == "ELSE" \
-            or op.typ == "FOR" or op.typ == "IN" or op.typ == "SEMI":
+            or op.typ == "ELIF" or op.typ == "FOR" or op.typ == "IN" or op.typ == "SEMI":
             break
         op = op.value
 
