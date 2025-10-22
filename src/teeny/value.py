@@ -192,11 +192,20 @@ class Closure:
         lst = None
         for ast in self.implementation:
             from teeny.interpreter import interpret
-            lst = interpret(ast, nEnv, insideCatch)
+            lst = interpret(ast, nEnv)
         return lst
 
 @dataclass
 class Error(Value):
+    typ: str = ""
+    value: str = ""
+
+    def __post_init__(self):
+        self.register(String(value = "type"), String(value = self.typ))
+        self.register(String(value = "value"), String(value = self.value))
+
+@dataclass
+class ValError(Value):
     typ: str = ""
     value: str = ""
 
