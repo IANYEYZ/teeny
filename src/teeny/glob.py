@@ -5,6 +5,11 @@ from pathlib import Path
 Math = Table({
     String(value = "pi"): Number(value = math.pi), String(value = "e"): Number(value = math.e)
 })
+Err = Table({
+    String(value = "_call_"): BuiltinClosure(fn = lambda typ, message: ValError(typ = typ, value = message)),
+    String(value = "panic"): BuiltinClosure(fn = lambda err: Error({}, err.typ, err.value)),
+    String(value = "raise"): BuiltinClosure(fn = lambda typ, message: Error({}, typ, message))
+})
 
 srcPath = Path(__file__).parent.parent.parent / "example"
 
@@ -29,7 +34,6 @@ def makeGlobal() -> Env:
         "import": BuiltinClosure(fn = Import),
         "mix": BuiltinClosure(fn = Mix, hasEnv = True),
         "include": BuiltinClosure(fn = lambda name, env: Mix(Import(name), env), hasEnv = True),
-        "error": BuiltinClosure(fn = lambda typ, message: ValError(typ = typ, value = message)),
-        "panic": BuiltinClosure(fn = lambda err: Error({}, err.typ, err.value))
+        "error": Err
     })
     return gEnv

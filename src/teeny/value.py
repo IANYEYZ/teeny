@@ -101,7 +101,7 @@ class Table(Value):
     def __len__(self) -> int:
         return self.size
     def __call__(self, value):
-        return self.get("_call_")(value)
+        return self.get(String(value = "_call_"))(value)
     
     def append(self, val: Value) -> Value:
         self.value[Number(value = self.size)] = val

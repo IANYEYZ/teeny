@@ -1,6 +1,6 @@
 v := 2
 
-v = (try v = (if panic(error("RE", "Error here")) {
+v = (try v = (if error.raise("RE", "Error here") {
     1
 } elif v == 2 {
     3
