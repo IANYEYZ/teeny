@@ -1,9 +1,11 @@
 v := 2
 
-try v = (if panic("Error here") {
+v = (try v = (if panic(error("RE", "Error here")) {
     1
 } elif v == 2 {
     3
 } else {
     2
-}) catch fn (err) err.type
+}) catch fn (err) err.type)
+
+v
