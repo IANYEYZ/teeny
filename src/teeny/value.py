@@ -228,12 +228,16 @@ class BuiltinClosure(Value):
     fn: Callable = lambda: 0
     hasEnv: bool = False
 
-    def __call__(self, value: list, kwarg: dict):
+    def __call__(self, value: list, kwarg: dict = {}):
         return self.fn(*value, **kwarg)
 
 @dataclass
 class BuiltinValue(Value):
     value: Value = field(default_factory = Nil)
+
+@dataclass
+class Underscore(Value):
+    pass
 
 def snapshot(e: Env):
     if e.outer == None:
@@ -292,3 +296,14 @@ def makeObject(value: Value) -> list | dict | str | int | bool | None:
             return res
     elif isinstance(value, Nil):
         return None
+def match(l: Value, r: Value) -> bool:
+    if isinstance(l, Underscore):
+        return True
+    elif isinstance(l, Number): return isTruthy(l == r)
+    elif isinstance(l, String): return isTruthy(l == r)
+    elif isinstance(l, Table):
+        if not isinstance(r, Table): return False
+        for k in l.value.keys():
+            if r.value.get(k) == None: return False
+            if not match(l.get(k), r.get(k)): return False
+        return True

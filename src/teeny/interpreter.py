@@ -1,5 +1,5 @@
 from teeny.AST import AST
-from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, snapshot, isTruthy
+from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore, snapshot, isTruthy, match
 from teeny.glob import makeGlobal
 from teeny.exception import RuntimeError
 
@@ -43,6 +43,8 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
     elif ast.typ == "NAME":
         if ast.value == "nil":
             return Nil()
+        if ast.value == "_":
+            return Underscore()
         return env.read(ast.value)
     elif ast.typ == "TABLE":
         value = Table({})
@@ -147,9 +149,9 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
         for c in ast.children:
             if c.typ != "OPT":
                 raise RuntimeError("OPT is the only type allowed inside a match expression")
-            lft = interpret(c.children[0], nEnv) if c.children[0].value != '_' else Number(1)
+            lft = interpret(c.children[0], nEnv)
             if isinstance(lft, Error): return lft
-            if isTruthy(lft == val):
+            if match(lft, val):
                 return interpret(c.children[1], nEnv)
         return Nil()
     elif ast.typ == "TRY":

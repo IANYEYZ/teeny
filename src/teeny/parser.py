@@ -157,7 +157,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             or op.typ == "COMMA" or op.typ == "COLON" or op.typ == "IF" or op.typ == "FN" \
             or op.typ == "WHILE" or op.typ == "THEN" or op.typ == "END" or op.typ == "ELSE" \
             or op.typ == "TRY" or op.typ == "CATCH" or op.typ == "ELIF" or op.typ == "FOR" \
-            or op.typ == "IN" or op.typ == "SEMI":
+            or op.typ == "IN" or op.typ == "SEMI" or op.typ == "MATCH":
             break
         op = op.value
 

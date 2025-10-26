@@ -3,6 +3,7 @@ from teeny.parser import parse
 from teeny.processor import process
 from teeny.interpreter import interpret
 from teeny.exception import LexicalError, SyntaxError, RuntimeError
+from teeny.value import makeObject
 
 def readFromExample(name):
     return open(f"../example/{name}.ty").read()
@@ -10,9 +11,9 @@ def readFromExample(name):
 rhs = None; p = 0
 while True:
     try:
-        rhs, p = parse(tokenize(readFromExample("http")), p)
+        rhs, p = parse(tokenize(readFromExample("expr")), p)
         # print(process(rhs))
-        print(interpret(process(rhs)))
+        print(makeObject(interpret(process(rhs))))
     except LexicalError as e:
         print(e)
         break
@@ -23,5 +24,5 @@ while True:
         print(e)
         break
     # print(rhs)
-    if p >= len(tokenize(readFromExample("http"))):
+    if p >= len(tokenize(readFromExample("expr"))):
         break

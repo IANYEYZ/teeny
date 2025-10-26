@@ -1,11 +1,10 @@
-v := 2
+l := [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-v = (try v = (if error.raise("RE", "Error here") {
-    1
-} elif v == 2 {
-    3
-} else {
-    2
-}) catch fn (err) err.type)
-
-v
+for i in l {
+    match [i % 3, i % 5] {
+        [0, 0]: "fizzbuzz",
+        [0, _]: "fizz",
+        [_, 0]: "buzz",
+        _: i
+    }
+}
