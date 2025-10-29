@@ -24,6 +24,9 @@ class Value:
 class Number(Value):
     value: int = 0
 
+    def __post_init__(self):
+        self.register(String(value = "times"), BuiltinClosure(fn = self.times))
+
     def __add__(self, rhs) -> "Number":
         return Number(value = self.value + rhs.value)
     def __sub__(self, rhs) -> "Number":
@@ -55,6 +58,8 @@ class Number(Value):
     
     def negative(self) -> "Number":
         return Number(value = -self.value)
+    def times(self) -> "Table":
+        return makeTable(range(0, self.value))
 
 @dataclass
 class String(Value):
