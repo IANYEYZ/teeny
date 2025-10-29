@@ -145,6 +145,7 @@ class Table(Value):
         self.register(String(value = "median"), BuiltinClosure(fn = lambda: makeTable(self.median())))
         self.register(String(value = "stdev"), BuiltinClosure(fn = lambda: makeTable(self.stdev())))
         self.register(String(value = "describe"), BuiltinClosure(fn = lambda: makeTable(self.describe())))
+        self.register(String(value = "has"), BuiltinClosure(fn = self.has))
         self.register(String(value = "_iter_"), BuiltinClosure(fn = self._iter_))
 
     def __add__(self, rhs: "Table") -> "Table":
@@ -228,6 +229,11 @@ class Table(Value):
         }
     def sort(self) -> None:
         pass
+    def has(self, key: Value) -> Number:
+        if not isinstance(self.get(key), Nil):
+            return Number(value = 1)
+        else:
+            return Number(value = 0)
     def _iter_(self):
         # Default iterative protocol
         cur = 0
@@ -398,3 +404,16 @@ def match(l: Value, r: Value) -> bool:
             if r.value.get(k) == None: return False
             if not match(l.get(k), r.get(k)): return False
         return True
+
+def copy(v: Value) -> Value:
+    if isinstance(v, Number):
+        return Number(value = v.value)
+    elif isinstance(v, String):
+        return String(value = v.value)
+    elif isinstance(v, Nil):
+        return Nil()
+    elif isinstance(v, Table):
+        res = Table()
+        for k in v.value.keys():
+            res.set(copy(k), copy(v.value.get(k)))
+        return res

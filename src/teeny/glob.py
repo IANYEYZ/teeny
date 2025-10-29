@@ -1,5 +1,5 @@
 from teeny.value import Env, Number, String, Table, Error, ValError, BuiltinClosure, \
-                        makeTable, makeObject, Value, Nil
+                        makeTable, makeObject, Value, Nil, Closure, copy
 import math
 from pathlib import Path
 import json
@@ -199,6 +199,14 @@ def Mix(table: Table, env: Env):
         if isinstance(key, String):
             env.define(key.value, table.get(key))
 
+def getType(val: Value) -> String:
+    if isinstance(val, Number): return String(value = "number")
+    if isinstance(val, Table): return String(value = "table")
+    if isinstance(val, String): return String(value = "string")
+    if isinstance(val, ValError): return String(value = "error")
+    if isinstance(val, Closure) or isinstance(val, BuiltinClosure): return String(value = "closure")
+    if isinstance(val, Nil): return String(value = "nil")
+
 def makeGlobal() -> Env:
     gEnv = Env()
     gEnv.update({
@@ -215,6 +223,8 @@ def makeGlobal() -> Env:
         "json": Json,
         "http": Http,
         "os": Os,
-        "argv": sys.argv[1:]
+        "argv": sys.argv[1:],
+        "type": BuiltinClosure(fn = getType),
+        "copy": BuiltinClosure(fn = copy)
     })
     return gEnv
