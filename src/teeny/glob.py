@@ -215,6 +215,7 @@ def makeGlobal() -> Env:
         "fs": Fs,
         "json": Json,
         "http": Http,
+        "os": Os,
         "argv": sys.argv[1:]
     })
     return gEnv
