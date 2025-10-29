@@ -376,6 +376,7 @@ def makeTable(value: list | dict | str | int | bool | float | None) -> Value:
 def makeObject(value: Value) -> list | dict | str | int | bool | None:
     if isinstance(value, Number): return value.value
     elif isinstance(value, String): return value.value
+    elif isinstance(value, Underscore): return "_"
     elif isinstance(value, Table):
         isList = True
         for i in value.value.keys():

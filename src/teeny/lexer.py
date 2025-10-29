@@ -15,7 +15,7 @@ TOKENS = [
     ("ANDAND",    r"&&"),
     ("OROR",      r"\|\|"),
     ("NOT",       r"\!"),
-    ("ARROW",     r"\|>"),
+    ("PIPE",     r"\|>"),
     ("ASSIGN",    r"="),
     ("PLUS",      r"\+"),
     ("MINUS",     r"-"),

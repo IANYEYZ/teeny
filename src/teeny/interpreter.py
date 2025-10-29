@@ -1,5 +1,5 @@
 from teeny.AST import AST
-from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore, snapshot, isTruthy, match
+from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore, snapshot, isTruthy, match, makeObject
 from teeny.glob import makeGlobal
 from teeny.exception import RuntimeError
 
@@ -35,7 +35,7 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False):
                 assignVariable(c, rhs.get(Number(value = cnt)), env, isDeclare)
                 cnt += 1
 
-def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
+def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
     if ast.typ == "NUMBER":
         return Number(value = int(ast.value))
     if ast.typ == "STRING":
@@ -75,10 +75,18 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
     elif ast.typ == "CALL":
         value = interpret(ast.children[0], env)
         if isinstance(value, Error): return value
+        piped = None
+        pipedUsed = False
+        if kwargs.get("piped") != None:
+            piped = kwargs.get("piped")
         params = ast.children[1:]
         kwArg = {}
         par = []
         for pos, p in enumerate(params):
+            if p.typ == "NAME" and p.value == "_":
+                par.append(piped)
+                pipedUsed = True
+                continue
             if p.typ != "KWARG":
                 val = interpret(p, env)
                 if isinstance(val, Error): return val
@@ -87,6 +95,8 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
                 lhs = p.children[0]; rhs = p.children[1]
                 val = interpret(rhs, env)
                 kwArg[lhs.value] = val
+        if not pipedUsed and piped != None:
+            par.insert(0, piped)
         if isinstance(value, BuiltinClosure):
             if value.hasEnv:
                 return value([*par, env], kwArg)
@@ -212,6 +222,11 @@ def interpret(ast: AST, env: Env = makeGlobal()) -> Value:
             rhs = interpret(ast.children[1], env)
             if isinstance(rhs, Error): return rhs
             return lhs.get(rhs)
+        if ast.value == "|>":
+            lhs = interpret(ast.children[0], env)
+            if isinstance(lhs, Error): return lhs
+            rhs = interpret(ast.children[1], env, piped = lhs)
+            return rhs
     elif ast.typ == "PREOP":
         if ast.value == "+":
             return interpret(ast.children[0], env)

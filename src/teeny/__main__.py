@@ -48,6 +48,7 @@ def main():
             while pos < len(tokens):
                 before = pos
                 ast, pos = parse(tokens, pos)
+                # print(ast)
                 if pos == before:
                     # Defensive: avoid infinite loop on bad parser progress
                     raise SyntaxError(f"Parser made no progress at token index {pos}")
