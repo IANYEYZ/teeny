@@ -10,7 +10,7 @@ import sys
 import random
 import subprocess
 
-srcPath = Path(__file__).parent.parent.parent / "example"
+srcPath = Path(sys.argv[1]).parent
 
 Math = Table(value = {
     String(value = "pi"): Number(value = math.pi), String(value = "e"): Number(value = math.e),
@@ -59,7 +59,6 @@ Err = Table(value = {
 def read(path: String, isJson = False, lines = False) -> String | Table:
     pth: str = srcPath / path.value
     res: str = ""
-    print(pth, path.value)
     try:
         res = open(pth, "r").read()
         if isJson:
@@ -77,7 +76,7 @@ def read(path: String, isJson = False, lines = False) -> String | Table:
             return rs
     else:
         return makeTable(res)
-def write(path: String, content: Value, isJson = False, lines = False, append = Number(0)) -> Value:
+def write(path: String, content: Value, isJson = False, lines = False, append = Number(value = 0)) -> Value:
     pth: str = srcPath / path.value
     cont: str = (content.value if not lines else '\n'.join(content.toList())) if not isJson else json.dumps(makeObject(content))
     num: bool = bool(append.value)
@@ -127,11 +126,11 @@ def findFiles(path: String, check: Value) -> Table:
     return res
 Fs = Table(value = {
     String(value = "readText"): BuiltinClosure(fn = lambda path: read(path, False)),
-    String(value = "writeText"): BuiltinClosure(fn = lambda path, content, append = Number(0): write(path, content, False, append = append)),
+    String(value = "writeText"): BuiltinClosure(fn = lambda path, content, append = Number(value = 0): write(path, content, False, append = append)),
     String(value = "readJson"): BuiltinClosure(fn = lambda path: read(path, True)),
-    String(value = "writeJson"): BuiltinClosure(fn = lambda path, content, append = Number(0): write(path, content, True, append = append)),
+    String(value = "writeJson"): BuiltinClosure(fn = lambda path, content, append = Number(value = 0): write(path, content, True, append = append)),
     String(value = "readLines"): BuiltinClosure(fn = lambda path: read(path, False, True)),
-    String(value = "writeLines"): BuiltinClosure(fn = lambda path, content, append = Number(0): write(path, content, False, True, append = append)),
+    String(value = "writeLines"): BuiltinClosure(fn = lambda path, content, append = Number(value = 0): write(path, content, False, True, append = append)),
     String(value = "exists"): BuiltinClosure(fn = exists),
     String(value = "listDir"): BuiltinClosure(fn = listDir),
     String(value = "isFile"): BuiltinClosure(fn = isFile),

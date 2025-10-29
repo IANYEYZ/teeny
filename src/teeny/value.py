@@ -83,10 +83,10 @@ class String(Value):
     def __add__(self, rhs) -> "String":
         return String(value = self.value + rhs.value)
     def __eq__(self, rhs) -> Number:
-        if not isinstance(rhs, String): return Number(0)
+        if not isinstance(rhs, String): return Number(value = 0)
         return Number(value = self.value == rhs.value)
     def __neq__(self, rhs) -> Number:
-        if not isinstance(rhs, String): return Number(1)
+        if not isinstance(rhs, String): return Number(value = 1)
         return Number(value = self.value != rhs.value)
     def __gt__(self, rhs) -> Number:
         return Number(value = self.value > rhs.value)
@@ -150,10 +150,10 @@ class Table(Value):
     def __add__(self, rhs: "Table") -> "Table":
         return Table(value = {**self.value, **rhs.value})
     def __eq__(self, rhs) -> Number:
-        if not isinstance(rhs, Table): return Number(0)
+        if not isinstance(rhs, Table): return Number(value = 0)
         return Number(value = int(self.value == rhs.value))
     def __neq__(self, rhs) -> Number:
-        if not isinstance(rhs, Table): return Number(1)
+        if not isinstance(rhs, Table): return Number(value = 1)
         return Number(value = int(self.value != rhs.value))
     def __len__(self) -> int:
         return self.size
