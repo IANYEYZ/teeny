@@ -8,6 +8,7 @@ import shutil
 import requests
 import sys
 import random
+import subprocess
 
 srcPath = Path(__file__).parent.parent.parent / "example"
 
@@ -176,6 +177,16 @@ def HTTPPost(url: String, data: Table):
 Http = Table(value = {
     String(value = "get"): BuiltinClosure(fn = HTTPGet),
     String(value = "post"): BuiltinClosure(fn = HTTPPost)
+})
+
+def Run(command: String):
+    return String(value = subprocess.run(command.value.split(), capture_output = True, text = True).stdout)
+Os = Table(value = {
+    String(value = "platform"): BuiltinClosure(fn = lambda: sys.platform),
+    String(value = "run"): BuiltinClosure(fn = Run),
+    String(value = "shell"): BuiltinClosure(fn = Run),
+    String(value = "getEnv"): BuiltinClosure(fn = lambda name: os.getenv(name.value)),
+    String(value = "setEnv"): BuiltinClosure(fn = lambda name, val: os.setenv(name.value, val.value))
 })
 
 def Import(name: String) -> Table:

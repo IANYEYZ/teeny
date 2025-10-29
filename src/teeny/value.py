@@ -59,6 +59,21 @@ class Number(Value):
 @dataclass
 class String(Value):
     value: str = ""
+    noConstruct: bool = False
+
+    def __post_init__(self):
+        if self.noConstruct:
+            return
+        self.register(String(value = "len", noConstruct = True), BuiltinClosure(fn = self.len))
+        self.register(String(value = "slice", noConstruct = True), BuiltinClosure(fn = self.slice))
+        self.register(String(value = "find", noConstruct = True), BuiltinClosure(fn = self.find))
+        self.register(String(value = "upper", noConstruct = True), BuiltinClosure(fn = self.upper))
+        self.register(String(value = "lower", noConstruct = True), BuiltinClosure(fn = self.lower))
+        self.register(String(value = "cap", noConstruct = True), BuiltinClosure(fn = self.cap))
+        self.register(String(value = "trim", noConstruct = True), BuiltinClosure(fn = self.trim))
+        self.register(String(value = "split", noConstruct = True), BuiltinClosure(fn = self.split))
+        self.register(String(value = "join", noConstruct = True), BuiltinClosure(fn = self.join))
+        self.register(String(value = "format", noConstruct = True), BuiltinClosure(fn = self.format))
 
     def __add__(self, rhs) -> "String":
         return String(value = self.value + rhs.value)
@@ -78,6 +93,37 @@ class String(Value):
         return Number(value = self.value <= rhs.value)
     def __hash__(self) -> int:
         return self.value.__hash__()
+    
+    def get(self, pos: Value):
+        if isinstance(pos, Number):
+            return self.value[pos.value]
+        else:
+            return super().get(pos)
+    def set(self, pos: Value, val: Value):
+        if not isinstance(pos, Number) or not isinstance(val, String):
+            raise RuntimeError("String is only indexable with Number")
+        self.value[pos] = val.value
+    
+    def len(self) -> Number:
+        return Number(value = len(self.value))
+    def slice(self, l: Number, r: Number) -> "String":
+        return String(value = self.value[l.value:r.value])
+    def find(self, sub: "String") -> Number:
+        return Number(value = self.value.find(sub.value))
+    def upper(self) -> "String":
+        return String(value = self.value.upper())
+    def lower(self) -> "String":
+        return String(value = self.value.lower())
+    def cap(self) -> "String":
+        return String(value = self.value.capitalize())
+    def trim(self) -> "String":
+        return String(value = self.trim())
+    def split(self, sep: "String") -> "Table":
+        return makeTable(self.value.split(sep.value))
+    def join(self, tab: "Table") -> "String":
+        return self.value.join(makeObject(tab))
+    def format(self, tab: "Table") -> "String":
+        return self.value.format(*tab.toList(), **tab.toDict())
 
 @dataclass
 class Table(Value):
@@ -146,6 +192,12 @@ class Table(Value):
         for k in self.value.keys():
             if isinstance(k, int):
                 res.append(self.value.get(k))
+        return res
+    def toDict(self):
+        res = {}
+        for k in self.value.keys():
+            if not isinstance(k, int):
+                res[k] = self.value.get(k)
         return res
     def sum(self) -> float:
         return sum(self.toList())
