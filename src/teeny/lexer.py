@@ -19,6 +19,8 @@ TOKENS = [
     ("ARROW",     r"=>"),
     ("ASSIGN",    r"="),
     ("DEFASSIGN", r"\?\="),
+    ("QEQE",      r"\?\?"),
+    ("RNGLI",     r"\.\."),
     ("PLUS",      r"\+"),
     ("MINUS",     r"-"),
     ("STAR",      r"\*"),

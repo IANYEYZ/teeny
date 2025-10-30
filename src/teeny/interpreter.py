@@ -1,5 +1,6 @@
 from teeny.AST import AST
-from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore, snapshot, isTruthy, match, makeObject
+from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore\
+    , snapshot, isTruthy, match, makeObject, makeTable
 from teeny.glob import makeGlobal
 from teeny.exception import RuntimeError
 
@@ -219,6 +220,18 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             return interpret(ast.children[0], env) >= interpret(ast.children[1], env)
         if ast.value == "<=":
             return interpret(ast.children[0], env) <= interpret(ast.children[1], env)
+        if ast.value == "??":
+            lhs = interpret(ast.children[0], env)
+            if isinstance(lhs, Error): return lhs
+            if not isinstance(lhs, Nil): return lhs
+            rhs = interpret(ast.children[1], env)
+            return rhs
+        if ast.value == "..":
+            lhs = interpret(ast.children[0], env)
+            if isinstance(lhs, Error): return lhs
+            rhs = interpret(ast.children[1], env)
+            if isinstance(rhs, Error): return rhs
+            return makeTable(list(range(lhs.value, rhs.value + 1)))
         if ast.value == ":=":
             # The left is guarenteed a name or a Table
             val = interpret(ast.children[1], env)
