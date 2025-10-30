@@ -188,8 +188,12 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                 raise RuntimeError("OPT is the only type allowed inside a match expression")
             lft = interpret(c.children[0], nEnv)
             if isinstance(lft, Error): return lft
-            if match(lft, val):
-                return interpret(c.children[1], nEnv)
+            if not isinstance(lft, Closure) and not isinstance(lft, BuiltinClosure):
+                if match(lft, val):
+                    return interpret(c.children[1], nEnv)
+            else:
+                if isTruthy(lft([val], {})):
+                    return interpret(c.children[1], nEnv)
         return Nil()
     elif ast.typ == "TRY":
         val = interpret(ast.children[0], env)
