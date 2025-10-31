@@ -147,14 +147,14 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         val = interpret(ast.children[0], env)
         if isinstance(val, Error): return val
         while isTruthy(val):
-            res = interpret(ast.children[1])
+            res = interpret(ast.children[1], env)
             if isinstance(res, Error): return res
             val = interpret(ast.children[0], env)
             if isinstance(val, Error): return val
         return res
     elif ast.typ == "FOR":
         lhs = ast.children[0]
-        rhs = interpret(ast.children[1])
+        rhs = interpret(ast.children[1], env)
         if isinstance(rhs, Error): return rhs
         if not isinstance(rhs, Table):
             raise RuntimeError("Only Table is iterrable")
@@ -174,8 +174,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         return lst
     elif ast.typ == "BLOCK":
         lst = Nil()
-        nEnv = Env()
-        nEnv.outer = env
+        nEnv = Env(env)
         for b in ast.children:
             lst = interpret(b, nEnv)
             if isinstance(lst, Error): return lst

@@ -33,7 +33,9 @@ class Number(Value):
         return Number(value = self.value - rhs.value)
     def __mul__(self, rhs) -> "Number":
         return Number(value = self.value * rhs.value)
-    def __div__(self, rhs) -> "Number":
+    def __truediv__(self, rhs) -> "Number":
+        return Number(value = self.value / rhs.value)
+    def __floordiv__(self, rhs) -> "Number":
         return Number(value = self.value / rhs.value)
     def __mod__(self, rhs) -> "Number":
         return Number(value = self.value % rhs.value)
