@@ -146,6 +146,8 @@ class Table(Value):
         self.register(String(value = "stdev"), BuiltinClosure(fn = lambda: makeTable(self.stdev())))
         self.register(String(value = "describe"), BuiltinClosure(fn = lambda: makeTable(self.describe())))
         self.register(String(value = "has"), BuiltinClosure(fn = self.has))
+        self.register(String(value = "map"), BuiltinClosure(fn = self.map))
+        self.register(String(value = "filter"), BuiltinClosure(fn = self.filter))
         self.register(String(value = "_iter_"), BuiltinClosure(fn = self._iter_))
 
     def __add__(self, rhs: "Table") -> "Table":
@@ -205,6 +207,21 @@ class Table(Value):
             if not isinstance(k, int):
                 res[k] = self.value.get(k)
         return res
+    def map(self, fn) -> "Table":
+        res = Table({})
+        for k in self.value.keys():
+            res.define(k, fn([self.value.get(k), k], {}))
+        return res
+    def filter(self, fn) -> "Table":
+        res = Table({})
+        l = self.toList(); d = self.toDict()
+        for p, v in enumerate(l):
+            if isTruthy(fn([v, Number(value = p)], {})):
+                res.append(v)
+        for k in d.keys():
+            if isTruthy(fn([d.get(k), k], {})):
+                res.define(k, d.get(k))
+        return res
     def sum(self) -> float:
         return sum(self.toList())
     def mean(self) -> float:
@@ -259,11 +276,11 @@ class Env(dict):
         self.outer = outer
     
     def read(self, name):
-        if self.get(name, None) != None:
+        if self.get(name) != None:
             return self.get(name)
         else:
             if self.outer == None:
-                raise RuntimeError(f"Can't find variable {name}, current env {self}\n")
+                raise RuntimeError(f"Can't find variable {name}\n")
             return self.outer.read(name)
     
     def write(self, name, val):
@@ -272,7 +289,6 @@ class Env(dict):
     
     def define(self, name, val):
         self.update({name: val})
-
 @dataclass
 class Closure:
     params: list[str] = field(default_factory = list)
@@ -304,6 +320,8 @@ class Closure:
     def __call__(self, value, kwarg):
         nEnv = self.env
         nEnv.update(self.default)
+        if len(value) > len(self.params):
+            value = value[0:len(self.params)]
         nEnv.update(zip(self.params[0:len(value)], value))
         nEnv.update(kwarg)
         lst = None

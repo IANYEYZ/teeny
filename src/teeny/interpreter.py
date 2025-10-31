@@ -71,7 +71,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                     if isinstance(key, Error): return key
                     val = interpret(c.children[1], env)
                     if isinstance(val, Error): return val
-                    value.update({val: val})
+                    value.update({key: val})
             else:
                 val = interpret(c, env)
                 if isinstance(val, Error): return val
@@ -160,8 +160,8 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             raise RuntimeError("Only Table is iterrable")
         curEnv = snapshot(env)
         lst = Table()
-        st = rhs.get(String(value = "_iter_"))([])
-        v = st()
+        st = rhs.get(String(value = "_iter_"))([], {})
+        v = st([], {})
         while not isinstance(v, Nil):
             p = v
             env = snapshot(curEnv)
@@ -169,12 +169,13 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             val = interpret(ast.children[2], env)
             if isinstance(val, Error): return val
             lst.append(val)
-            v = st()
+            v = st([], {})
         env = snapshot(curEnv)
         return lst
     elif ast.typ == "BLOCK":
         lst = Nil()
-        nEnv = Env(env)
+        nEnv = Env()
+        nEnv.outer = env
         for b in ast.children:
             lst = interpret(b, nEnv)
             if isinstance(lst, Error): return lst
