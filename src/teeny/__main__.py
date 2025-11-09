@@ -17,7 +17,7 @@ def main():
                 break
             run_code(src, is_file = False)
         sys.exit(0)
-    run_code(sys.argv[1], print_each=True)
+    run_code(sys.argv[1], print_each = True, print_res = False)
 
 if __name__ == "__main__":
     main()

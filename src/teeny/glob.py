@@ -21,7 +21,7 @@ Math = Table(value = {
     String(value = "abs"): BuiltinClosure(fn = lambda x: Number(value = abs(x.value))),
     String(value = "floor"): BuiltinClosure(fn = lambda x: Number(value = math.floor(x.value))),
     String(value = "ceil"): BuiltinClosure(fn = lambda x: Number(value = math.ceil(x.value))),
-    String(value = "round"): BuiltinClosure(fn = lambda x: Number(value = math.round(x.value))),
+    String(value = "round"): BuiltinClosure(fn = lambda x: Number(value = round(x.value))),
     String(value = "trunc"): BuiltinClosure(fn = lambda x: Number(value = math.trunc(x.value))),
     String(value = "min"): BuiltinClosure(fn = lambda a, b: min(a, b)),
     String(value = "max"): BuiltinClosure(fn = lambda a, b: max(a, b)),
@@ -42,8 +42,8 @@ Math = Table(value = {
     String(value = "log2"): BuiltinClosure(fn = lambda x: Number(value = math.log2(x.value))),
     String(value = "hypot"): BuiltinClosure(fn = lambda *x: Number(value = math.hypot(*[i.value for i in x]))),
     String(value = "random"): BuiltinClosure(fn = lambda: Number(value = random.random())),
-    String(value = "uniform"): BuiltinClosure(fn = lambda a, b: Number(value = random.uniform(a.value, b.value))),
-    String(value = "randint"): BuiltinClosure(fn = lambda a, b: Number(value = random.randint(a.value, b.value))),
+    String(value = "uniform"): BuiltinClosure(fn = lambda a, b: Number(value = random.uniform(int(a.value), int(b.value)))),
+    String(value = "randint"): BuiltinClosure(fn = lambda a, b: Number(value = random.randint(int(a.value), int(b.value)))),
     String(value = "clamp"): BuiltinClosure(fn = lambda a, mmin, mmax: max(mmin, min(a, mmax))),
     String(value = "lerp"): BuiltinClosure(fn = lambda a, b, t: a + (b - a) * t),
     String(value = "eq"): BuiltinClosure(fn = lambda a, b: a == b),
@@ -229,7 +229,8 @@ def Import(name: String) -> Table:
     code = open(srcPath / name.value).read()
     from teeny.runner import run
     res = run(code)
-    return res.get("export")
+    val = res.get("export")
+    return val
 
 def Mix(table: Table, env: Env):
     for key in table.value.keys():
@@ -244,11 +245,16 @@ def getType(val: Value) -> String:
     if isinstance(val, Closure) or isinstance(val, BuiltinClosure): return String(value = "closure")
     if isinstance(val, Nil): return String(value = "nil")
 
+def Print(*x) -> Nil:
+    for i in x:
+        print(makeObject(i), end = '')
+    return Nil()
+
 def makeGlobal() -> Env:
     gEnv = Env()
     gEnv.update({
         "math": Math,
-        "print": BuiltinClosure(fn = lambda *x: print(*x, sep = '', end = '')),
+        "print": BuiltinClosure(fn = Print),
         "input": BuiltinClosure(fn = lambda: input("")),
         "export": Table(value = {}),
         "import": BuiltinClosure(fn = Import),

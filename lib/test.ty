@@ -1,0 +1,3 @@
+cat := import("./cat.ty");
+
+cat.say("Hello, world!")

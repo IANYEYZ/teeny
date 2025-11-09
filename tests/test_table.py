@@ -33,6 +33,13 @@ class TestTable(unittest.TestCase):
         self.assertEqual(makeObject(run_code('[1, 2, 3].median()', False, False, False)), 2)
         self.assertEqual(makeObject(run_code('[1, 2, 3, 4].median()', False, False, False)), 2.5)
         self.assertEqual(makeObject(run_code('[1, 3, 2].sort()', False, False, False)), [1, 2, 3])
+        self.assertAlmostEqual(makeObject(run_code('[1, 2, 3].stdev()', False, False, False)), 0.816496580927726)
+        self.assertEqual(makeObject(run_code('[1, 2, 3].describe()', False, False, False)), {
+            "sum": 6,
+            "mean": 2.0,
+            "median": 2,
+            "stdev": 0.816496580927726
+        })
 
 if __name__ == "__main__":
     unittest.main()

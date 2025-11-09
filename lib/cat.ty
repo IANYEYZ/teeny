@@ -1,0 +1,16 @@
+// The cat library
+
+export["nya"] := (n) => {
+    for _ in n.times() {
+        print("nya~\n")
+    }
+}
+
+export["say"] := (text) => {
+    border := " " + ("-" * (text.len() + 2)) + "\n";
+    print(border);
+    print("<" + text + ">\n");
+    print(border);
+    print("   \\   ^_^\n");
+    print("    \\  ( =ω=)\n")
+}

@@ -3,13 +3,15 @@ from teeny.runner import run_code
 from teeny.value import makeObject, Error, Nil
 
 class TestString(unittest.TestCase):
-    def test_string_comparison(self):
+    def test_string_operator(self):
         self.assertEqual(makeObject(run_code('"a" == "a"', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('"a" != "b"', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('"a" < "b"', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('"a" <= "b"', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('"a" > "b"', False, False, False)), 0)
         self.assertEqual(makeObject(run_code('"a" >= "b"', False, False, False)), 0)
+        self.assertEqual(makeObject(run_code('"a" + "b"', False, False, False)), "ab")
+        self.assertEqual(makeObject(run_code('"a" * 3', False, False, False)), "aaa")
     def test_string_get_and_set(self):
         self.assertEqual(makeObject(run_code('"a"[0]', False, False, False)), "a")
         self.assertEqual(makeObject(run_code('a := "a"; a[0] = "b"; a', False, False, False)), "b")

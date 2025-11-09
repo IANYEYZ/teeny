@@ -4,6 +4,8 @@ from teeny.AST import AST
 from teeny.exception import RuntimeError
 import math
 import functools
+import codecs
+import uuid
 
 def requireType(message: str):
     def decorator(func):
@@ -30,7 +32,10 @@ def requireType(message: str):
 @dataclass
 class Value:
     metaTable: dict["Value": "Value"] = field(default_factory=dict)
+    gID: str = field(default_factory=str)
 
+    def __post_init__(self):
+        self.gID = str(uuid.uuid4())
     def register(self, pos: "Value", val: "Value"):
         self.metaTable[pos] = val
     def get(self, pos: "Value") -> "Value":
@@ -38,9 +43,10 @@ class Value:
 
 @dataclass
 class Number(Value):
-    value: int = 0
+    value: float = 0.0
 
     def __post_init__(self):
+        super().__post_init__()
         self.register(String(value = "times"), BuiltinClosure(fn = self.times))
 
     @requireType("add a non-Number to a Number")
@@ -88,7 +94,7 @@ class Number(Value):
     def negative(self) -> "Number":
         return Number(value = -self.value)
     def times(self) -> "Table":
-        return makeTable(list(range(0, self.value)))
+        return makeTable(list(range(0, int(self.value))))
     def fact(self) -> "Number":
         return Number(value = math.factorial(int(self.value)))
 
@@ -100,6 +106,7 @@ class String(Value):
     def __post_init__(self):
         if self.noConstruct:
             return
+        super().__post_init__()
         self.register(String(value = "len", noConstruct = True), BuiltinClosure(fn = self.len))
         self.register(String(value = "slice", noConstruct = True), BuiltinClosure(fn = self.slice))
         self.register(String(value = "find", noConstruct = True), BuiltinClosure(fn = self.find))
@@ -114,6 +121,9 @@ class String(Value):
     @requireType("add a non-String to a String")
     def __add__(self, rhs: "String") -> "String":
         return String(value = self.value + rhs.value)
+    @requireType("multiply a non-Number to a String")
+    def __mul__(self, rhs: Number) -> "String":
+        return String(value = self.value * int(rhs.value))
     def __eq__(self, rhs: Value) -> Number:
         if not isinstance(rhs, String): return Number(value = 0)
         return Number(value = self.value == rhs.value)
@@ -137,19 +147,19 @@ class String(Value):
     
     def get(self, pos: Value):
         if isinstance(pos, Number):
-            return String(value = self.value[pos.value])
+            return String(value = self.value[int(pos.value)])
         else:
             return super().get(pos)
     def set(self, pos: Value, val: Value):
         if not isinstance(pos, Number) or not isinstance(val, String):
             return Error(typ = "Runtime Error", value = "index string with non-Number")
-        v = list(self.value); v[pos.value] = val.value
+        v = list(self.value); v[int(pos.value)] = val.value
         self.value = "".join(v)
     
     def len(self) -> Number:
         return Number(value = len(self.value))
     def slice(self, l: Number, r: Number) -> "String":
-        return String(value = self.value[l.value:r.value + 1])
+        return String(value = self.value[int(l.value):int(r.value) + 1])
     def find(self, sub: "String") -> Number:
         return Number(value = self.value.find(sub.value))
     def upper(self) -> "String":
@@ -173,6 +183,7 @@ class Table(Value):
     size: int = 0
 
     def __post_init__(self):
+        super().__post_init__()
         self.register(String(value = "push"), BuiltinClosure(fn = self.append))
         self.register(String(value = "keys"), BuiltinClosure(fn = self.keys))
         self.register(String(value = "values"), BuiltinClosure(fn = self.values))
@@ -273,7 +284,7 @@ class Table(Value):
             return ((lis[len(lis) // 2] + lis[len(lis) // 2 - 1]) / Number(value = 2)).value
     def stdev(self) -> float:
         avg = self.mean()
-        arr = list(map(lambda x: (x - avg) ** 2,self.toList()))
+        arr = list(map(lambda x: (x - avg) ** 2, makeObject(self.toList())))
         return math.sqrt(sum(arr) / len(arr))
     def describe(self):
         return {
@@ -343,6 +354,7 @@ class Closure:
     implementation: list[AST] = field(default_factory = list)
     env: "Env" = field(default_factory = Env)
     isDynamic: bool = False
+    gID: str = ""
 
     def __init__(self, params, implementation, env, isDynamic):
         self.params = []
@@ -353,15 +365,16 @@ class Closure:
                 self.default[item[0]] = item[1]
             else:
                 self.params.append(item)
-        self.implementation = implementation; self.env = snapshot (env) if not isDynamic else env;
+        self.implementation = implementation; self.env = snapshot(env) if not isDynamic else env;
         self.isDynamic = isDynamic
+        self.gID = str(uuid.uuid4())
 
     def __eq__(self, rhs):
-        if not isinstance(rhs, Closure): return False
-        return self.params == rhs.params and self.implementation == rhs.implementation
+        if not isinstance(rhs, Closure): return Number(value = 0)
+        return Number(value = int(self.gID == rhs.gID))
     def __ne__(self, rhs):
-        if not isinstance(rhs, Closure): return True
-        return self.params != rhs.params or self.implementation != rhs.implementation
+        if not isinstance(rhs, Closure): return Number(value = 1)
+        return Number(value = int(self.gID != rhs.gID))
 
     def __call__(self, value, kwarg):
         nEnv = Env(outer = self.env)
@@ -384,8 +397,18 @@ class Error(Value):
     value: str = ""
 
     def __post_init__(self):
+        super().__post_init__()
         self.register(String(value = "type"), String(value = self.typ))
         self.register(String(value = "value"), String(value = self.value))
+    
+    def __eq__(self, rhs):
+        if not isinstance(rhs, Error):
+            return Number(value = 0)
+        return Number(value = int(self.typ == rhs.typ and self.value == rhs.value))
+    def __ne__(self, rhs):
+        if not isinstance(rhs, Error):
+             return Number(value = 1)
+        return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
 
 @dataclass
 class ValError(Value):
@@ -393,8 +416,18 @@ class ValError(Value):
     value: str = ""
 
     def __post_init__(self):
+        super().__post_init__()
         self.register(String(value = "type"), self.typ)
         self.register(String(value = "value"), self.value)
+    
+    def __eq__(self, rhs):
+        if not isinstance(rhs, Error):
+            return Number(value = 0)
+        return Number(value = int(self.typ == rhs.typ and self.value == rhs.value))
+    def __ne__(self, rhs):
+        if not isinstance(rhs, Error):
+             return Number(value = 1)
+        return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
 
 @dataclass
 class Nil(Value):
@@ -462,8 +495,10 @@ def makeTable(value: list | dict | str | int | bool | float | None) -> Value:
         return Nil()
 
 def makeObject(value: Value | dict | list) -> list | dict | str | int | bool | None:
-    if isinstance(value, Number): return value.value
-    elif isinstance(value, String): return value.value
+    if isinstance(value, Number):
+        if int(value.value) == value.value: return int(value.value)
+        return value.value
+    elif isinstance(value, String): return value.value.encode().decode("unicode_escape")
     elif isinstance(value, Underscore): return "_"
     elif isinstance(value, Table):
         isList = True

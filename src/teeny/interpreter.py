@@ -63,7 +63,7 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defA
 
 def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
     if ast.typ == "NUMBER":
-        return Number(value = int(ast.value))
+        return Number(value = float(ast.value))
     if ast.typ == "STRING":
         if ast.value != None:
             return String(value = (str(ast.value)[1:-1]))
@@ -107,7 +107,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                 if isinstance(val, Error): return val
                 res.append([v[0], val])
             else:
-                res.append(v[0])
+                res.append(v)
         value = Closure(res, ast.children, Env(outer = env), False)
         return value
     elif ast.typ == "FN-DYNAMIC":
