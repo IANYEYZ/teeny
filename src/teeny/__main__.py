@@ -15,7 +15,7 @@ def main():
             src = input("teeny> ")
             if src == ":exit":
                 break
-            run_code(src, is_file = False)
+            run_code(src, is_file = False, print_each = False)
         sys.exit(0)
     run_code(sys.argv[1], print_each = True, print_res = False)
 

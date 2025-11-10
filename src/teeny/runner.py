@@ -43,13 +43,13 @@ def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, i
                 print(e)
             last_result = value
             if print_each and value is not None:
-                if print_res: print(makeObject(value))
+                if print_res: print("=>", makeObject(value))
                 results.append(value)
 
         # If you prefer “print only the last value”, set print_each=False
         # and print here instead:
         if not print_each and last_result is not None:
-            if print_res: print(makeObject(last_result))
+            if print_res: print("=>", makeObject(last_result))
             return last_result
         if print_each: return results
         else: return None
