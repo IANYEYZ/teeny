@@ -183,12 +183,19 @@ Http = Table(value = {
 
 def Run(command: String):
     return String(value = subprocess.run(command.value.split(), capture_output = True, text = True).stdout)
+def getEnv(name: String) -> String | Nil:
+    envPath = srcPath / ".env"
+    for line in open(envPath).readlines():
+        k, _, v = line.partition("=")
+        if k.strip() == name.value:
+            return String(value = v.strip())
+    return Nil()
 Os = Table(value = {
     String(value = "platform"): BuiltinClosure(fn = lambda: sys.platform),
     String(value = "run"): BuiltinClosure(fn = Run),
     String(value = "shell"): BuiltinClosure(fn = Run),
-    String(value = "getEnv"): BuiltinClosure(fn = lambda name: os.getenv(name.value)),
-    String(value = "setEnv"): BuiltinClosure(fn = lambda name, val: os.setenv(name.value, val.value))
+    String(value = "getEnv"): BuiltinClosure(fn = getEnv),
+    String(value = "setEnv"): BuiltinClosure(fn = lambda name, val: [os.setenv(name.value, val.value), Nil()][-1])
 })
 
 Time = Table(value = {
