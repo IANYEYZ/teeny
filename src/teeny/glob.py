@@ -161,21 +161,22 @@ Json: Table = Table(value = {
     String(value = "write"): BuiltinClosure(fn = Fs.get(String(value = "writeJson")))
 })
 
-def HTTPGet(url: String, params = Nil()) -> Table:
+def HTTPGet(url: String, params = Nil(), headers = Nil()) -> Table:
     urlString: str = url.value
-    r = requests.get(urlString, makeObject(params))
+    r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
         String(value = "content"): String(value = r.text)
     })
-def HTTPPost(url: String, data: Table) -> Table:
+def HTTPPost(url: String, data: Table, headers: Table | Nil = Nil()) -> Table:
     urlString = url.value
-    r = requests.post(urlString, json = makeObject(data))
+    r = requests.post(urlString, json = makeObject(data), headers = makeObject(headers))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
-        String(value = "content"): String(value = r.text)
+        String(value = "content"): String(value = r.text),
+        String(value = "json"): makeTable(r.json())
     })
 Http: Table = Table(value = {
     String(value = "get"): BuiltinClosure(fn = HTTPGet),
@@ -189,7 +190,7 @@ def getEnv(name: String) -> String | Nil:
     for line in open(envPath).readlines():
         k, _, v = line.partition("=")
         if k.strip() == name.value:
-            return String(value = v.strip())
+            return String(value = v.strip()[1:-1])
     return Nil()
 def setEnv(name: String, value: String) -> Nil:
     envPath = srcPath / ".env"

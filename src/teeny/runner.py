@@ -4,7 +4,7 @@ from teeny.parser import parse
 from teeny.processor import process
 from teeny.interpreter import interpret
 from teeny.exception import LexicalError, SyntaxError, RuntimeError
-from teeny.value import makeObject
+from teeny.value import makeObject, Error
 from teeny.glob import makeGlobal
 
 def run(code: str, env: Env = makeGlobal()) -> Env:
@@ -36,6 +36,9 @@ def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, i
             except RecursionError as e:
                 print(e)
             last_result = value
+            if isinstance(value, Error):
+                print(makeObject(value))
+                return
             if print_each and value is not None:
                 if print_res: print("=>", makeObject(value))
                 results.append(value)
