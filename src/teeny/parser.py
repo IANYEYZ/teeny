@@ -23,7 +23,7 @@ def suffixOperators(op) -> int:
         '!': 17, '[': 17, '(': 17
     }.get(op)
 
-def advance(tokens: list[Token], p: int, expectedTyp: str | list[str]):
+def advance(tokens: list[Token], p: int, expectedTyp: str | list[str]) -> int:
     if not isinstance(expectedTyp, list):
         expectedTyp = [expectedTyp]
     for typ in expectedTyp:

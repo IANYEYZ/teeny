@@ -6,9 +6,11 @@ import math
 import functools
 import codecs
 import uuid
+from collections.abc import Callable
+from typing import Union
 
-def requireType(message: str):
-    def decorator(func):
+def requireType(message: str) -> Callable:
+    def decorator(func) -> Callable:
         @functools.wraps(func)
         def inner(*args, **kwargs):
             hints = func.__annotations__
@@ -34,9 +36,9 @@ class Value:
     metaTable: dict["Value": "Value"] = field(default_factory=dict)
     gID: str = field(default_factory=str)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.gID = str(uuid.uuid4())
-    def register(self, pos: "Value", val: "Value"):
+    def register(self, pos: "Value", val: "Value") -> None:
         self.metaTable[pos] = val
     def get(self, pos: "Value") -> "Value":
         return self.metaTable.get(pos, Nil())
@@ -45,7 +47,7 @@ class Value:
 class Number(Value):
     value: float = 0.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.register(String(value = "times"), BuiltinClosure(fn = self.times))
 
@@ -103,7 +105,7 @@ class String(Value):
     value: str = ""
     noConstruct: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.noConstruct:
             return
         super().__post_init__()
@@ -145,16 +147,17 @@ class String(Value):
     def __hash__(self) -> int:
         return self.value.__hash__()
     
-    def get(self, pos: Value):
+    def get(self, pos: Value) -> Value:
         if isinstance(pos, Number):
             return String(value = self.value[int(pos.value)])
         else:
             return super().get(pos)
-    def set(self, pos: Value, val: Value):
+    def set(self, pos: Value, val: Value) -> Union["Error", "Nil"]:
         if not isinstance(pos, Number) or not isinstance(val, String):
             return Error(typ = "Runtime Error", value = "index string with non-Number")
         v = list(self.value); v[int(pos.value)] = val.value
         self.value = "".join(v)
+        return Nil()
     
     def len(self) -> Number:
         return Number(value = len(self.value))
@@ -182,7 +185,7 @@ class Table(Value):
     value: dict[Value: Value] = field(default_factory=dict)
     size: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.register(String(value = "push"), BuiltinClosure(fn = self.append))
         self.register(String(value = "keys"), BuiltinClosure(fn = self.keys))
@@ -209,48 +212,50 @@ class Table(Value):
     def __ne__(self, rhs: "Value") -> Number:
         if not isinstance(rhs, Table): return Number(value = 1)
         return Number(value = int(self.value != rhs.value))
-    def __call__(self, value, kwarg):
+    def __call__(self, value, kwarg) -> Value:
         return self.get(String(value = "_call_"))(value)
     
     def append(self, val: Value) -> Value:
         self.value[Number(value = self.size)] = val
         self.size += 1
         return val
-    def update(self, val: dict):
+    def update(self, val: dict) -> None:
         self.value.update(val)
-    def get(self, pos: Value):
+    def get(self, pos: Value) -> Value:
         res = self.value.get(pos, Nil())
         if not isinstance(res, Nil):
             return res
         return super().get(pos)
-    def set(self, pos: Value, val: Value):
+    def set(self, pos: Value, val: Value) -> Value:
         if self.value.get(pos) == None:
-            raise RuntimeError(f"property {pos} didn't exist\nDid you mean := ?")
+            return Error(typ = "Runtime Error", value = "setting non-existing property")
         self.value[pos] = val
-    def define(self, pos: Value, val: Value):
+        return val
+    def define(self, pos: Value, val: Value) -> Value:
         self.value[pos] = val
-    def keys(self):
+        return val
+    def keys(self) -> "Table":
         res = Table()
         for k in self.value.keys():
             res.append(k)
         return res
-    def values(self):
+    def values(self) -> "Table":
         res = Table()
         for k in self.value.keys():
             res.append(self.value[k])
         return res
-    def pairs(self):
+    def pairs(self) -> "Table":
         res = Table()
         for k in self.value.keys():
             res.append(Table(value = {Number(value = 0): k, Number(value = 1): self.value[k]}, size = 2))
         return res
-    def toList(self):
+    def toList(self) -> list:
         res = []
         for k in self.value.keys():
             if isinstance(k, Number):
                 res.append(self.value.get(k))
         return res
-    def toDict(self):
+    def toDict(self) -> dict:
         res = {}
         for k in self.value.keys():
             if not isinstance(k, Number):
@@ -310,27 +315,28 @@ class Table(Value):
         l = self.toList()
         res = Table()
         for pos, i in enumerate(l):
-            if i < len(l) - 1:
-                res.append([i, l[pos + 1]])
+            if pos < len(l) - 1:
+                tab = Table(); tab.append(i); tab.append(l[pos + 1])
+                res.append(tab)
         return res
-    def _iter_(self, val = [], kw = {}):
+    def _iter_(self, val = [], kw = {}) -> Callable:
         # Default iterative protocol
         cur = 0
         end = self.size
-        def nxt(val = [], kw = {}):
+        def nxt(val = [], kw = {}) -> Union[Number, "Nil"]:
             nonlocal cur
             if cur < end:
                 cur += 1
-                return cur - 1
+                return Number(value = cur - 1)
             else:
                 return Nil()
         return nxt
 
 class Env(dict):
-    def __init__(self, outer: Optional["Env"] = None):
+    def __init__(self, outer: Optional["Env"] = None) -> None:
         self.outer = outer
     
-    def read(self, name):
+    def read(self, name: str) -> Value:
         if self.get(name) != None:
             return self.get(name)
         else:
@@ -338,15 +344,18 @@ class Env(dict):
                 return Error(typ = "Runtime Error", value = f"read from non-existing variable")
             return self.outer.read(name)
     
-    def write(self, name, val):
-        if self.get(name, None) != None: self[name] = val
+    def write(self, name: str, val: Value) -> Value:
+        if self.get(name, None) != None:
+            self[name] = val
+            return val
         else:
             if self.outer == None:
                 return Error(typ = "Runtime Error", value = f"assign to non-existing variable")
             return self.outer.write(name, val)
     
-    def define(self, name, val):
+    def define(self, name: str, val: Value) -> Value:
         self.update({name: val})
+        return val
 @dataclass
 class Closure:
     params: list[str] = field(default_factory = list)
@@ -356,7 +365,7 @@ class Closure:
     isDynamic: bool = False
     gID: str = ""
 
-    def __init__(self, params, implementation, env, isDynamic):
+    def __init__(self, params: list[str], implementation: AST, env: Env, isDynamic: bool) -> None:
         self.params = []
         self.default = {}
         for item in params:
@@ -369,14 +378,14 @@ class Closure:
         self.isDynamic = isDynamic
         self.gID = str(uuid.uuid4())
 
-    def __eq__(self, rhs):
+    def __eq__(self, rhs) -> Number:
         if not isinstance(rhs, Closure): return Number(value = 0)
         return Number(value = int(self.gID == rhs.gID))
-    def __ne__(self, rhs):
+    def __ne__(self, rhs) -> Number:
         if not isinstance(rhs, Closure): return Number(value = 1)
         return Number(value = int(self.gID != rhs.gID))
 
-    def __call__(self, value, kwarg):
+    def __call__(self, value, kwarg) -> Value:
         nEnv = Env(outer = self.env)
         nEnv.update(self.default)
         if len(value) > len(self.params):
@@ -396,16 +405,16 @@ class Error(Value):
     typ: str = ""
     value: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.register(String(value = "type"), String(value = self.typ))
         self.register(String(value = "value"), String(value = self.value))
     
-    def __eq__(self, rhs):
+    def __eq__(self, rhs) -> Number:
         if not isinstance(rhs, Error):
             return Number(value = 0)
         return Number(value = int(self.typ == rhs.typ and self.value == rhs.value))
-    def __ne__(self, rhs):
+    def __ne__(self, rhs) -> Number:
         if not isinstance(rhs, Error):
              return Number(value = 1)
         return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
@@ -415,16 +424,16 @@ class ValError(Value):
     typ: str = ""
     value: str = ""
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.register(String(value = "type"), self.typ)
         self.register(String(value = "value"), self.value)
     
-    def __eq__(self, rhs):
+    def __eq__(self, rhs) -> Number:
         if not isinstance(rhs, Error):
             return Number(value = 0)
         return Number(value = int(self.typ == rhs.typ and self.value == rhs.value))
-    def __ne__(self, rhs):
+    def __ne__(self, rhs) -> Number:
         if not isinstance(rhs, Error):
              return Number(value = 1)
         return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
@@ -438,10 +447,10 @@ class Nil(Value):
 
 @dataclass
 class BuiltinClosure(Value):
-    fn: Callable = lambda: 0
+    fn: Callable = lambda: Number(value = 0)
     hasEnv: bool = False
 
-    def __call__(self, value: list, kwarg: dict = {}):
+    def __call__(self, value: list, kwarg: dict = {}) -> Value:
         return self.fn(*value, **kwarg)
 
 @dataclass
@@ -452,7 +461,7 @@ class BuiltinValue(Value):
 class Underscore(Value):
     pass
 
-def snapshot(e: Env):
+def snapshot(e: Env) -> Env:
     if e.outer == None:
         res = Env(None)
         res.update(e.copy())
@@ -462,7 +471,7 @@ def snapshot(e: Env):
         res.update(e.copy())
         return res
 
-def isTruthy(value: Value):
+def isTruthy(value: Value) -> bool:
     if isinstance(value, Number):
         return bool(value.value)
     elif isinstance(value, Table):

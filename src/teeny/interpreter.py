@@ -4,7 +4,7 @@ from teeny.value import Value, Number, String, Table, Closure, Nil, Env, Error, 
 from teeny.glob import makeGlobal
 from teeny.exception import RuntimeError
 
-def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defAssign: bool = False):
+def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defAssign: bool = False) -> Value:
     if lhs.typ != "TABLE":
         if lhs.typ == "NAME":
             if lhs.value == "_":
@@ -187,7 +187,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         while not isinstance(v, Nil):
             p = v
             env = snapshot(curEnv)
-            assignVariable(lhs, rhs.get(Number(value = p)), env, True)
+            assignVariable(lhs, rhs.get(p), env, True)
             val = interpret(ast.children[2], env)
             if isinstance(val, Error): return val
             lst.append(val)

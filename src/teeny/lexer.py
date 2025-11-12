@@ -2,7 +2,7 @@ from teeny.token import Token
 from teeny.exception import LexicalError
 import re
 
-TOKENS = [
+TOKENS: list[tuple[str, str]] = [
     ("WS",        r"[ \t\r\n]+"),
     ("COMMENT",   r"#.*"),
     ("DEFINE",    r":="),
@@ -41,7 +41,7 @@ TOKENS = [
     ("NUMBER", r"(?:\d+\.(?![A-Za-z_]|\.)(?:\d*)|\.\d+|\d+)(?:[eE][+-]?\d+)?"),
     ("NAME",      r"[A-Za-z_][A-Za-z0-9_]*"),
 ]
-KEYWORDS = {
+KEYWORDS: dict[str: str] = {
     "if": "IF",
     "then": "THEN",
     "else": "ELSE",
@@ -54,7 +54,7 @@ KEYWORDS = {
     "try": "TRY",
     "catch": "CATCH"
 }
-MASTER_RE = re.compile("|".join(f"(?P<{k}>{p})" for k, p in TOKENS))
+MASTER_RE: re.Pattern = re.compile("|".join(f"(?P<{k}>{p})" for k, p in TOKENS))
 
 def tokenize(src: str) -> list[Token]:
     pos = 0

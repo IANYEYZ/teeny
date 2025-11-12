@@ -12,10 +12,11 @@ import subprocess
 import time
 import functools
 import statistics
+from collections.abc import Callable
 
-srcPath = Path(sys.argv[1] if len(sys.argv) >= 2 else __file__).parent
+srcPath: Path = Path(sys.argv[1] if len(sys.argv) >= 2 else __file__).parent
 
-Math = Table(value = {
+Math: Table = Table(value = {
     String(value = "pi"): Number(value = math.pi), String(value = "e"): Number(value = math.e),
     String(value = "tau"): Number(value = math.tau),
     String(value = "abs"): BuiltinClosure(fn = lambda x: Number(value = abs(x.value))),
@@ -81,7 +82,8 @@ def read(path: String, isJson = False, lines = False) -> String | Table:
         return makeTable(res)
 def write(path: String, content: Value, isJson = False, lines = False, append = Number(value = 0)) -> Value:
     pth: str = srcPath / path.value
-    cont: str = (content.value if not lines else '\n'.join(content.toList())) if not isJson else json.dumps(makeObject(content))
+    cont: str = (content.value if not lines else '\n'.join(content.toList()))\
+                if not isJson else json.dumps(makeObject(content))
     num: bool = bool(append.value)
     try:
         open(pth, ("w" if not num else "a")).write(cont)
@@ -121,13 +123,12 @@ def join(table: Table) -> String:
     return String(value = os.path.join(tab))
 def findFiles(path: String, check: Value) -> Table:
     pth: str = srcPath / path
-    lis = os.listdir(pth)
-    lis = filter(check, lis)
+    lis = filter(check, os.listdir(pth))
     res = Table({})
     for item in lis:
         res.append(String(value = item))
     return res
-Fs = Table(value = {
+Fs: Table = Table(value = {
     String(value = "readText"): BuiltinClosure(fn = lambda path: read(path, False)),
     String(value = "writeText"): BuiltinClosure(fn = lambda path, content, append = Number(value = 0): write(path, content, False, append = append)),
     String(value = "readJson"): BuiltinClosure(fn = lambda path: read(path, True)),
@@ -151,7 +152,7 @@ def encode(res: Table) -> String:
     return String(value = json.dumps(makeObject(res)))
 def decode(res: String) -> Table:
     return makeTable(json.loads(res.value))
-Json = Table(value = {
+Json: Table = Table(value = {
     String(value = "encode"): BuiltinClosure(fn = encode),
     String(value = "stringnify"): BuiltinClosure(fn = encode),
     String(value = "decode"): BuiltinClosure(fn = decode),
@@ -160,7 +161,7 @@ Json = Table(value = {
     String(value = "write"): BuiltinClosure(fn = Fs.get(String(value = "writeJson")))
 })
 
-def HTTPGet(url: String, params = Nil()):
+def HTTPGet(url: String, params = Nil()) -> Table:
     urlString: str = url.value
     r = requests.get(urlString, makeObject(params))
     return Table(value = {
@@ -168,7 +169,7 @@ def HTTPGet(url: String, params = Nil()):
         String(value = "headers"): makeTable(dict(r.headers)),
         String(value = "content"): String(value = r.text)
     })
-def HTTPPost(url: String, data: Table):
+def HTTPPost(url: String, data: Table) -> Table:
     urlString = url.value
     r = requests.post(urlString, json = makeObject(data))
     return Table(value = {
@@ -176,12 +177,12 @@ def HTTPPost(url: String, data: Table):
         String(value = "headers"): makeTable(dict(r.headers)),
         String(value = "content"): String(value = r.text)
     })
-Http = Table(value = {
+Http: Table = Table(value = {
     String(value = "get"): BuiltinClosure(fn = HTTPGet),
     String(value = "post"): BuiltinClosure(fn = HTTPPost)
 })
 
-def Run(command: String):
+def Run(command: String) -> String:
     return String(value = subprocess.run(command.value.split(), capture_output = True, text = True).stdout)
 def getEnv(name: String) -> String | Nil:
     envPath = srcPath / ".env"
@@ -190,35 +191,46 @@ def getEnv(name: String) -> String | Nil:
         if k.strip() == name.value:
             return String(value = v.strip())
     return Nil()
-Os = Table(value = {
+def setEnv(name: String, value: String) -> Nil:
+    envPath = srcPath / ".env"
+    s = ""
+    for line in open(envPath).readlines():
+        k, _, v = line.partition("=")
+        if k.strip() == name.value:
+            s += f"{k} = {value.value}\n"
+        else:
+            s += f"{k} = {v}\n"
+    open(envPath, "w").write(s)
+    return Nil()
+Os: Table = Table(value = {
     String(value = "platform"): BuiltinClosure(fn = lambda: sys.platform),
     String(value = "run"): BuiltinClosure(fn = Run),
     String(value = "shell"): BuiltinClosure(fn = Run),
     String(value = "getEnv"): BuiltinClosure(fn = getEnv),
-    String(value = "setEnv"): BuiltinClosure(fn = lambda name, val: [os.setenv(name.value, val.value), Nil()][-1])
+    String(value = "setEnv"): BuiltinClosure(fn = setEnv)
 })
 
-Time = Table(value = {
+Time: Table = Table(value = {
     String(value = "now"): BuiltinClosure(fn = lambda: Number(value = time.time())),
     String(value = "sleep"): BuiltinClosure(fn = lambda t: [time.sleep(t.value), Nil()][-1])
 })
 
-def compose2(f, g):
+def compose2(f, g) -> Callable:
     return lambda *a, **kw: f([g([*a], kw)], {})
-def Compose(*args):
+def Compose(*args) -> Callable:
     return BuiltinClosure(fn = functools.reduce(compose2, args))
 def Pipe(*args):
     pass
-Func = Table(value = {
+Func: Table = Table(value = {
     String(value = "compose"): BuiltinClosure(fn = Compose)
 })
 
-def measure(fn: Value):
+def measure(fn: Value) -> Number:
     st = time.time()
     fn([], {})
     ed = time.time()
     return Number(value = ed - st)
-def measureMultiple(fn: Value, runs: Number):
+def measureMultiple(fn: Value, runs: Number) -> Table:
     tm = []
     for _ in range(runs.value):
         tm.append(measure(fn))
@@ -227,7 +239,7 @@ def measureMultiple(fn: Value, runs: Number):
         String(value = "max"): Number(value = max(list(map(lambda item: item.value, tm)))),
         String(value = "min"): Number(value = min(list(map(lambda item: item.value, tm))))
     })
-Benchmark = Table(value = {
+Benchmark: Table = Table(value = {
     String(value = "measure"): BuiltinClosure(fn = measure),
     String(value = "measureMul"): BuiltinClosure(fn = measureMultiple)
 })
@@ -239,10 +251,11 @@ def Import(name: String) -> Table:
     val = res.get("export")
     return val
 
-def Mix(table: Table, env: Env):
+def Mix(table: Table, env: Env) -> Nil:
     for key in table.value.keys():
         if isinstance(key, String):
             env.define(key.value, table.get(key))
+    return Nil()
 
 def getType(val: Value) -> String:
     if isinstance(val, Number): return String(value = "number")
