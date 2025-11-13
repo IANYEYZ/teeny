@@ -282,7 +282,7 @@ def makeGlobal() -> Env:
         "import": BuiltinClosure(fn = Import),
         "mix": BuiltinClosure(fn = Mix, hasEnv = True),
         "include": BuiltinClosure(fn = lambda name, env: Mix(Import(name), env), hasEnv = True),
-        "range": BuiltinClosure(fn = lambda l, r, step = Number(value = 1): makeTable(list(range(l.value, r.value, step.value)))),
+        "range": BuiltinClosure(fn = lambda l, r, step = Number(value = 1): makeTable(list(range(int(l.value), int(r.value), int(step.value))))),
         "error": Err,
         "fs": Fs,
         "json": Json,
