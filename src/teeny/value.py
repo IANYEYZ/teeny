@@ -42,6 +42,10 @@ class Value:
         self.metaTable[pos] = val
     def get(self, pos: "Value") -> "Value":
         return self.metaTable.get(pos, Nil())
+    def toString(self) -> "String":
+        return String(value = "value")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
 @dataclass
 class Number(Value):
@@ -99,6 +103,10 @@ class Number(Value):
         return makeTable(list(range(0, int(self.value))))
     def fact(self) -> "Number":
         return Number(value = math.factorial(int(self.value)))
+    def toString(self) -> "String":
+        return String(value = str(makeObject(self)))
+    def toNumber(self) -> "Number":
+        return self
 
 @dataclass
 class String(Value):
@@ -179,6 +187,15 @@ class String(Value):
         return String(value = self.value.join(makeObject(tab)))
     def format(self, tab: "Table") -> "String":
         return String(value = self.value.format(*makeObject(tab.toList()), **makeObject(tab.toDict())))
+    def toString(self) -> "String":
+        return self
+    def toNumber(self) -> "Number":
+        res = None
+        try:
+            res = Number(value = float(self.value))
+        except ValueError:
+            res = Error(typ = "Runtime Error", value = "convert non-Number to Number")
+        return res
 
 @dataclass
 class Table(Value):
@@ -319,6 +336,19 @@ class Table(Value):
                 tab = Table(); tab.append(i); tab.append(l[pos + 1])
                 res.append(tab)
         return res
+    def toString(self) -> "String":
+        l = self.toList(); d = self.toDict()
+        parts = []
+        for item in l:
+            s = item.toString().value
+            parts.append(s)
+        for k, v in d.items():
+            ks = k.toString().value
+            vs = v.toString().value
+            parts.append(f"{ks}: {vs}")
+        return String(value = "[" + ", ".join(parts) + "]")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
     def _iter_(self, val = [], kw = {}) -> Callable:
         # Default iterative protocol
         cur = 0
@@ -399,6 +429,10 @@ class Closure:
             from teeny.interpreter import interpret
             lst = interpret(ast, nEnv)
         return lst
+    def toString(self) -> "String":
+        return String(value = "Closure")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
 @dataclass
 class Error(Value):
@@ -418,6 +452,10 @@ class Error(Value):
         if not isinstance(rhs, Error):
              return Number(value = 1)
         return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
+    def toString(self) -> "String":
+        return String(value = f"Error({self.typ}, {self.value})")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
 @dataclass
 class ValError(Value):
@@ -437,6 +475,10 @@ class ValError(Value):
         if not isinstance(rhs, Error):
              return Number(value = 1)
         return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
+    def toString(self) -> "String":
+        return String(value = f"Error({self.typ}, {self.value})")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
 @dataclass
 class Nil(Value):
@@ -444,6 +486,10 @@ class Nil(Value):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Nil, cls).__new__(cls)
         return cls.instance
+    def toString(self) -> "String":
+        return String(value = "nil")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
 @dataclass
 class BuiltinClosure(Value):
@@ -528,8 +574,8 @@ def makeObject(value: Value | dict | list) -> list | dict | str | int | bool | N
         return None
     elif isinstance(value, Closure):
         return "Closure"
-    elif isinstance(value, Error):
-        return str({'type': value.typ, "value": value.value})
+    elif isinstance(value, Error) or isinstance(value, ValError):
+        return value.toString()
     elif isinstance(value, dict):
         res = {}
         for k in value.keys():

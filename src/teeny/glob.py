@@ -271,6 +271,13 @@ def Print(*x) -> Nil:
         print(makeObject(i), end = '')
     return Nil()
 
+def table(*args, **kwargs):
+    res = Table()
+    res.value = {String(value = k): kwargs[k] for k in kwargs.keys()}
+    for i in args:
+        res.append(i)
+    return res
+
 def makeGlobal() -> Env:
     gEnv = Env()
     gEnv.update({
@@ -293,6 +300,9 @@ def makeGlobal() -> Env:
         "func": Func,
         "benchmark": Benchmark,
         "type": BuiltinClosure(fn = getType),
-        "copy": BuiltinClosure(fn = copy)
+        "copy": BuiltinClosure(fn = copy),
+        "str": BuiltinClosure(fn = lambda x: x.toString()),
+        "num": BuiltinClosure(fn = lambda x: x.toNumber()),
+        "table": BuiltinClosure(fn = table)
     })
     return gEnv
