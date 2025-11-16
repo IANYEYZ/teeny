@@ -16,8 +16,8 @@ def run(code: str, env: Env = makeGlobal()) -> Env:
             break
     return env
 
-def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, is_file: bool = True) -> None:
-    env = makeGlobal()
+def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, is_file: bool = True, defEnv: Env = makeGlobal()) -> None:
+    env = defEnv
     try:
         src = None
         if is_file: src = open(pathOrCode, "r", encoding="utf-8").read()

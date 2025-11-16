@@ -265,6 +265,7 @@ def getType(val: Value) -> String:
     if isinstance(val, ValError): return String(value = "error")
     if isinstance(val, Closure) or isinstance(val, BuiltinClosure): return String(value = "closure")
     if isinstance(val, Nil): return String(value = "nil")
+    return String(value = "Unknown")
 
 def Print(*x) -> Nil:
     for i in x:
@@ -296,7 +297,7 @@ def makeGlobal() -> Env:
         "http": Http,
         "os": Os,
         "time": Time,
-        "argv": sys.argv[1:],
+        "argv": makeTable(sys.argv[1:]),
         "func": Func,
         "benchmark": Benchmark,
         "type": BuiltinClosure(fn = getType),
