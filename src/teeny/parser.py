@@ -7,20 +7,20 @@ def infixOperators(op) -> list[int]:
         '=': [1, 2], ':=': [1, 2], '?=': [1, 2], '|>': [1, 2],
         '||': [5, 6],
         '&&': [7, 8],
-        '==': [9, 10], '!=': [9, 10], '>': [9, 10], '<': [9, 10], '>=': [9, 10], '<=': [9, 10], '??': [9, 10],
-        '+': [11, 12], '-': [11, 12], '..': [11, 12],
-        '*': [13, 14], '/': [13, 14], '%': [13, 14],
+        '==': [9, 10], '!=': [9, 10], '>': [9, 10], '<': [9, 10], '>=': [9, 10], '<=': [9, 10], '??': [9, 10], '?:': [9, 10],
+        '+': [13, 14], '-': [13, 14], '..': [13, 14],
+        '*': [15, 16], '/': [15, 16], '%': [15, 16],
         '.': [20, 19]
     }.get(op)
 
 def prefixOperators(op) -> int:
     return {
-        '+': 15, '-': 15, '!': 15, '%': 15
+        '+': 15, '-': 15, '!': 15, '%': 15, "...": 15
     }.get(op)
 
 def suffixOperators(op) -> int:
     return {
-        '!': 17, '[': 17, '(': 17, '?': 17
+        '!': 17, '[': 17, '(': 17
     }.get(op)
 
 def advance(tokens: list[Token], p: int, expectedTyp: str | list[str]) -> int:
@@ -37,10 +37,21 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     while tokens[p].typ == "SEMI": p += 1
     lhs = None
     if tokens[p].typ == "NUMBER" or tokens[p].typ == "NAME":
-        lhs = AST("NUMBER" 
-                  if tokens[p].typ == "NUMBER" 
-                  else "NAME", [], tokens[p].value)
-        p += 1
+        if p + 1 < len(tokens) and (tokens[p + 1].typ == "ARROW" or tokens[p + 1].typ == "AT"):
+            name = tokens[p]
+            p = advance(tokens, p, "NAME")
+            isDynamic = False
+            if tokens[p].typ == "AT":
+                p = advance(tokens, p, "AT")
+                isDynamic = True
+            p = advance(tokens, p, "ARROW")
+            rhs, p = parse(tokens, p, 0)
+            lhs = AST("FN" if not isDynamic else "FN-DYNAMIC", [rhs], [name])
+        else:
+            lhs = AST("NUMBER" 
+                      if tokens[p].typ == "NUMBER" 
+                      else "NAME", [], tokens[p].value)
+            p += 1
     elif tokens[p].typ == "STRING":
         children = []
         while p < len(tokens) and (tokens[p].typ == "STRING" or tokens[p].typ == "INTE_START"):
@@ -69,13 +80,10 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             p = nowPos
             params = []
             while tokens[p].typ != "RPAREN":
-                params.append(tokens[p].value)
-                p += 1
-                if tokens[p].typ == "ASSIGN":
-                    p = advance(tokens, p, "ASSIGN")
-                    rhs, p = parse(tokens, p, 0)
-                    name = params.pop()
-                    params.append([name, rhs])
+                rhs, p = parse(tokens, p, 0)
+                params.append(rhs)
+                if rhs.value == "=":
+                    params.append([rhs.children[0], rhs.children[1]])
                 if tokens[p].typ == "COMMA": p += 1
             p = advance(tokens, p, "RPAREN")
             isDynamic = False
@@ -180,13 +188,10 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
         p = advance(tokens, p, "LPAREN")
         params = []
         while tokens[p].typ != "RPAREN":
-            params.append(tokens[p].value)
-            p += 1
-            if tokens[p].typ == "ASSIGN":
-                p = advance(tokens, p, "ASSIGN")
-                rhs, p = parse(tokens, p, 0)
-                name = params.pop()
-                params.append([name, rhs])
+            rhs, p = parse(tokens, p, 0)
+            params.append(rhs)
+            if rhs.value == "=":
+                params.append([rhs.children[0], rhs.children[1]])
             if tokens[p].typ == "COMMA": p += 1
         p = advance(tokens, p, "RPAREN")
         if isDynamic:
@@ -227,13 +232,9 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             elif op == '(':
                 children = []
                 while tokens[p].typ != "RPAREN":
-                    if tokens[p].typ == "NAME" and tokens[p + 1].typ == "ASSIGN":
-                        rhs = AST("NAME", [], tokens[p].value)
-                        p += 2
-                        val, p = parse(tokens, p, 0)
-                        rhs = AST("KWARG", [rhs, val])
-                    else:
-                        rhs, p = parse(tokens, p, 0)
+                    rhs, p = parse(tokens, p, 0)
+                    if rhs.value == "=":
+                        rhs = AST("KWARG", [rhs.children[0], rhs.children[1]])
                     if tokens[p].typ == "COMMA": p += 1
                     children.append(rhs)
                 p += 1

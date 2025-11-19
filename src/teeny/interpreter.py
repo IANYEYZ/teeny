@@ -80,7 +80,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             return Underscore()
         val = env.read(ast.value)
         if kwargs.get("piped") != None:
-            return val([kwargs.get("piped")], {})
+            return val([kwargs.get("piped")], [])
         return val
     elif ast.typ == "TABLE":
         value = Table({})
@@ -97,6 +97,18 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                     val = interpret(c.children[1], env)
                     if isinstance(val, Error): return val
                     value.update({key: val})
+            elif c.value == "...":
+                val = interpret(c.children[0], env)
+                if isinstance(val, Error): return val
+                if not isinstance(val, Table):
+                    return Error(typ = "Runtime Error", value = "spread operator on non-Table")
+                for k in val.value.keys():
+                    v = val.get(k)
+                    if isinstance(v, Error): return v
+                    if isinstance(k, Number):
+                        value.append(v)
+                    else:
+                        value.update({k: v})
             else:
                 val = interpret(c, env)
                 if isinstance(val, Error): return val
@@ -113,7 +125,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                 res.append(v)
         value = Closure(res, ast.children, Env(outer = env), False)
         if kwargs.get("piped") != None:
-            return value([kwargs.get("piped")], {})
+            return value([kwargs.get("piped")], [])
         return value
     elif ast.typ == "FN-DYNAMIC":
         res = []
@@ -123,10 +135,10 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                 if isinstance(val, Error): return val
                 res.append([v[0], val])
             else:
-                res.append(v[0])
+                res.append(v)
         value = Closure(res, ast.children, Env(outer = env), True)
         if kwargs.get("piped") != None:
-            return value([kwargs.get("piped")], {})
+            return value([kwargs.get("piped")], [])
         return value
     elif ast.typ == "CALL":
         value = interpret(ast.children[0], env)
@@ -136,21 +148,34 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         if kwargs.get("piped") != None:
             piped = kwargs.get("piped")
         params = ast.children[1:]
-        kwArg = {}
+        kwArg = []
         par = []
         for pos, p in enumerate(params):
             if p.typ == "NAME" and p.value == "_":
                 par.append(piped)
                 pipedUsed = True
                 continue
-            if p.typ != "KWARG":
+            if p.value == "...":
+                val = interpret(p.children[0], env)
+                if isinstance(val, Error): return val
+                if not isinstance(val, Table):
+                    return Error(typ = "Runtime Error", value = "spread operator on non-Table")
+                for k in val.value.keys():
+                    v = val.get(k)
+                    if isinstance(v, Error): return v
+                    if isinstance(k, Number):
+                        par.append(v)
+                    else:
+                        kwArg.append([k, v])
+            elif p.typ != "KWARG":
                 val = interpret(p, env)
                 if isinstance(val, Error): return val
                 par.append(val)
             else:
                 lhs = p.children[0]; rhs = p.children[1]
                 val = interpret(rhs, env)
-                kwArg[lhs.value] = val
+                if isinstance(val, Error): return val
+                kwArg.append([lhs, val])
         if not pipedUsed and piped != None:
             par.insert(0, piped)
         if isinstance(value, BuiltinClosure):
@@ -189,8 +214,8 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             return Error(typ = "Runtime Error", value = "iterate non-Table")
         curEnv = snapshot(env)
         lst = Table()
-        st = rhs.get(String(value = "_iter_"))([], {})
-        v = st([], {})
+        st = rhs.get(String(value = "_iter_"))([], [])
+        v = st([], [])
         while not isinstance(v, Nil):
             p = v
             env = snapshot(curEnv)
@@ -198,7 +223,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             val = interpret(ast.children[2], env)
             if isinstance(val, Error): return val
             lst.append(val)
-            v = st([], {})
+            v = st([], [])
         env = snapshot(curEnv)
         return lst
     elif ast.typ == "BLOCK":
@@ -227,7 +252,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             rhs = interpret(ast.children[1], env)
             if not isinstance(rhs, (Closure, BuiltinClosure, Table)):
                 return Error(typ = 'Runtime Error', value = 'uncallable catch expression')
-            return rhs([ValError(typ = val.typ, value = val.value)], {})
+            return rhs([ValError(typ = val.typ, value = val.value)], [])
         else:
             return val
     elif ast.typ == "OP":
@@ -317,6 +342,12 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             lhs = interpret(ast.children[0], env)
             if isinstance(lhs, Error): return lhs
             if not isinstance(lhs, Nil): return lhs
+            rhs = interpret(ast.children[1], env)
+            return rhs
+        if ast.value == "?:":
+            lhs = interpret(ast.children[0], env)
+            if isinstance(lhs, Error): return lhs
+            if isTruthy(lhs): return lhs
             rhs = interpret(ast.children[1], env)
             return rhs
         if ast.value == "..":

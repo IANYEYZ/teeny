@@ -393,7 +393,7 @@ class Env(dict):
 @dataclass
 class Closure:
     params: list[str] = field(default_factory = list)
-    default: dict[str: Value] = field(default_factory = dict)
+    default: list[list[Value]] = field(default_factory = list)
     implementation: list[AST] = field(default_factory = list)
     env: "Env" = field(default_factory = Env)
     isDynamic: bool = False
@@ -401,11 +401,11 @@ class Closure:
 
     def __init__(self, params: list[str], implementation: AST, env: Env, isDynamic: bool) -> None:
         self.params = []
-        self.default = {}
+        self.default = []
         for item in params:
             if isinstance(item, list):
                 self.params.append(item[0])
-                self.default[item[0]] = item[1]
+                self.default.append(item)
             else:
                 self.params.append(item)
         self.implementation = implementation; self.env = snapshot(env) if isDynamic else env;
@@ -419,13 +419,22 @@ class Closure:
         if not isinstance(rhs, Closure): return Number(value = 1)
         return Number(value = int(self.gID != rhs.gID))
 
-    def __call__(self, value, kwarg) -> Value:
+    def __call__(self, value, kwarg: list) -> Value:
         nEnv = Env(outer = self.env)
-        nEnv.update(self.default)
+        for pos in range(len(self.default)):
+            param = self.default[pos][0]
+            dVal = self.default[pos][1]
+            from teeny.interpreter import assignVariable
+            assignVariable(param, dVal, nEnv, True, False)
         if len(value) > len(self.params):
             value = value[0:len(self.params)]
-        nEnv.update(zip(self.params[0:len(value)], value))
-        nEnv.update(kwarg)
+        for pos, param in enumerate(self.params):
+            from teeny.interpreter import assignVariable
+            if pos < len(value):
+                assignVariable(param, value[pos], nEnv, True, False)
+        for pos, param in enumerate(kwarg):
+            from teeny.interpreter import assignVariable
+            assignVariable(param[0], param[1], nEnv, True, False)
         nEnv.define("this", self)
         # nEnv.define("n", value[0])
         lst = None
@@ -500,9 +509,12 @@ class BuiltinClosure(Value):
     fn: Callable = lambda: Number(value = 0)
     hasEnv: bool = False
 
-    def __call__(self, value: list, kwarg: dict = {}) -> Value:
-        return self.fn(*value, **kwarg)
-
+    def __call__(self, value: list, kwarg: list = []) -> Value:
+        kwarg_dict = {}
+        for item in kwarg:
+            if item[0].typ == "NAME":
+                kwarg_dict[item[0].value] = item[1]
+        return self.fn(*value, **kwarg_dict)
 @dataclass
 class BuiltinValue(Value):
     value: Value = field(default_factory = Nil)
