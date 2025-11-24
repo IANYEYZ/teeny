@@ -261,11 +261,20 @@ Benchmark: Table = Table(value = {
     String(value = "measureMul"): BuiltinClosure(fn = measureMultiple)
 })
 
+cachedModules = {}
 def Import(name: String) -> Table:
-    code = open(srcPath / name.value).read()
+    pth: str = srcPath / name.value
+    if not os.path.isfile(pth):
+        pth = pth / "index.ty"
+        if not os.path.isfile(pth):
+            return Error({}, "Import Error", f"Module '{name.value}' not found")
+    if pth in cachedModules:
+        return cachedModules[pth]
+    code = open(pth).read()
     from teeny.runner import run
     res = run(code)
     val = res.get("export")
+    cachedModules[pth] = val
     return val
 
 def Mix(table: Table, env: Env) -> Nil:
