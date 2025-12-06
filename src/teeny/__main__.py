@@ -36,7 +36,7 @@ def checkParenBalance(src):
 def readCode():
     src = input("\033[36mteeny>\033[0m ")
     while not checkParenBalance(src):
-        src += input("\033[36m.....>\033[0m ")
+        src += input("\033[36m...>  \033[0m ")
     return src
 
 C = {
