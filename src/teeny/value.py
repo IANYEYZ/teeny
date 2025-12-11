@@ -662,6 +662,7 @@ def isTruthy(value: Value) -> bool:
 def makeTable(value: list | dict | str | int | bool | float | None | object) -> Value:
     if isinstance(value, int): return Number(value = value)
     elif isinstance(value, str): return String(value = value)
+    elif isinstance(value, bytes): return String(value = value.decode("utf-8"))
     elif isinstance(value, bool): return Number(value = int(value))
     elif isinstance(value, float): return Number(value = value)
     elif isinstance(value, list):

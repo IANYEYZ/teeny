@@ -279,8 +279,8 @@ def Import(name: String, type: String = String(value = "teeny")) -> Table:
     if type.value == "python":
         mod = importlib.import_module(name.value)
         return makeTable(mod)
-    elif type.value == "wrapper":
-        mod = dynamicImport(str(srcPath / (name.value + ".wrapper.py")))
+    elif type.value == "wrapper" or name.value.find(".") == -1:
+        mod = dynamicImport(str(srcPath.parent.parent / "lib" / (name.value + ".wrapper.py")))
         return makeTable(mod)
     pth: str = srcPath / name.value
     gPth: str = globalPackagePath / name.value
@@ -345,7 +345,7 @@ def makeGlobal() -> Env:
         "error": Err,
         "fs": Fs,
         "json": Json,
-        "http": Http,
+        # "http": Http,
         "os": Os,
         "time": Time,
         "argv": makeTable(sys.argv[1:]),
