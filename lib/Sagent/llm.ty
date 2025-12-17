@@ -1,0 +1,31 @@
+apiKey := os.getEnv("API_KEY");
+url := os.getEnv("url");
+export["llm"] := () => {
+    self := [];
+    self = [
+        "messages": [],
+        "addMessage": (role, content) => {
+            self.messages.push([
+                "role": role,
+                "content": content
+            ]);
+            self
+        },
+        "response": (temperature = 0.3, update = 1) => {
+            headers := [
+                'Authorization': 'Bearer {apiKey}',
+                'Content-Type': 'application/json'
+            ];
+            data := [
+                "model": "deepseek-chat",
+                "messages": self.messages,
+                "temperature": temperature
+            ];
+            res := http.post(url, headers = headers, data = data).json.choices[0].message.content;
+            if update {
+                self.addMessage("assistant", res)
+            }
+            res
+        }
+    ]
+}

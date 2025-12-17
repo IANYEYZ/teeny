@@ -214,14 +214,22 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     elif tokens[p].typ == "BREAK":
         p = advance(tokens, p, "BREAK")
         lhs, p = parse(tokens, p, 0)
-        lhs = AST("BREAK", [lhs])
+        if lhs == None:
+            lhs = AST("BREAK", [])
+        else:
+            lhs = AST("BREAK", [lhs])
     elif tokens[p].typ == "CONTINUE":
         p = advance(tokens, p, "CONTINUE")
         lhs, p = parse(tokens, p, 0)
-        lhs = AST("CONTINUE", [lhs])
+        if lhs == None:
+            lhs = AST("CONTINUE", [])
+        else:
+            lhs = AST("CONTINUE", [lhs])
     else:
         op = tokens[p].value
         rBp = prefixOperators(op)
+        if rBp == None:
+            return [None, p]
         p += 1
         rhs, p = parse(tokens, p, rBp)
         lhs = AST("PREOP", [rhs], op)

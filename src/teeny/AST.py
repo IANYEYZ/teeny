@@ -12,7 +12,10 @@ class AST:
         res = ""
         res += "    " * tab + self.typ + ' ' + (toString(self.value) if self.value != None else "") + '\n'
         for c in self.children:
-            res += c.toString(tab + 1)
+            if isinstance(c, AST):
+                res += c.toString(tab + 1)
+            else:
+                res += "    " * (tab + 1) + toString(c) + '\n'
         return res
     def __repr__(self) -> str:
         return self.toString()

@@ -678,7 +678,8 @@ def isTruthy(value: Value) -> bool:
 
 def makeTable(value: list | dict | str | int | bool | float | None | object) -> Value:
     if isinstance(value, int): return Number(value = value)
-    elif isinstance(value, str): return String(value = value)
+    elif isinstance(value, str):
+        return String(value = value)
     elif isinstance(value, bytes): return String(value = value.decode("utf-8"))
     elif isinstance(value, bool): return Number(value = int(value))
     elif isinstance(value, float): return Number(value = value)
@@ -730,7 +731,7 @@ def makeObject(value: Value | dict | list) -> list | dict | str | int | bool | N
         if isinstance(value.value, int): return value.value
         if value.value.is_integer(): return int(value.value)
         return value.value
-    elif isinstance(value, String): return value.value.encode().decode("unicode_escape")
+    elif isinstance(value, String): return value.value.replace("\\n", "\n").replace("\\t", "\t")
     elif isinstance(value, Underscore): return "_"
     elif isinstance(value, Table):
         isList = True

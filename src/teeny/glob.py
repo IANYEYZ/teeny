@@ -345,7 +345,7 @@ def makeGlobal() -> Env:
         "error": Err,
         "fs": Fs,
         "json": Json,
-        # "http": Http,
+        "http": Http,
         "os": Os,
         "time": Time,
         "argv": makeTable(sys.argv[1:]),

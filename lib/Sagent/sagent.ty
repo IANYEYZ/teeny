@@ -1,0 +1,15 @@
+include("./llm.ty");
+
+main := () => {
+    llmInstance := llm();
+    while 1 {
+        print(">>> ");
+        rd := input();
+        if rd == ":exit" {
+            break;
+        }
+        println(llmInstance.addMessage("user", rd).response())
+    }
+};
+
+main()

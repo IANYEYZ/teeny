@@ -89,10 +89,14 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         if isinstance(val, Error) or isinstance(val, Bubble): return val
         return Bubble(typ = "RETURN", val = val)
     elif ast.typ == "BREAK":
+        if len(ast.children) == 0:
+            return Bubble(typ = "BREAK", val = Nil())
         val = interpret(ast.children[0], env)
         if isinstance(val, Error) or isinstance(val, Bubble): return val
         return Bubble(typ = "BREAK", val = val)
     elif ast.typ == "CONTINUE":
+        if len(ast.children) == 0:
+            return Bubble(typ = "CONTINUE", val = Nil())
         val = interpret(ast.children[0], env)
         if isinstance(val, Error) or isinstance(val, Bubble): return val
         return Bubble(typ = "CONTINUE", val = val)
@@ -216,9 +220,9 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         if isinstance(val, Error) or isinstance(val, Bubble): return val
         while isTruthy(val):
             res = interpret(ast.children[1], env)
-            if isinstance(res, Error) or isinstance(res, Bubble): return res
+            if isinstance(res, Error) or isinstance(res, Bubble): return res if isinstance(res, Error) else res.val
             val = interpret(ast.children[0], env)
-            if isinstance(val, Error) or isinstance(val, Bubble): return val
+            if isinstance(val, Error) or isinstance(val, Bubble): return val if isinstance(val, Error) else val.val
         return res
     elif ast.typ == "FOR":
         lhs = ast.children[0]
