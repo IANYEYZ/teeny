@@ -11,6 +11,7 @@ from typing import Union
 import re
 import importlib
 import types
+from teeny.lexer import escapeString
 
 def requireType(message: str) -> Callable:
     def decorator(func) -> Callable:
@@ -731,7 +732,7 @@ def makeObject(value: Value | dict | list) -> list | dict | str | int | bool | N
         if isinstance(value.value, int): return value.value
         if value.value.is_integer(): return int(value.value)
         return value.value
-    elif isinstance(value, String): return value.value.replace("\\n", "\n").replace("\\t", "\t")
+    elif isinstance(value, String): return escapeString(value.value)
     elif isinstance(value, Underscore): return "_"
     elif isinstance(value, Table):
         isList = True

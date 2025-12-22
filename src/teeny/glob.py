@@ -14,6 +14,7 @@ import time
 import functools
 import statistics
 from collections.abc import Callable
+import sqlite3
 
 srcPath: Path = Path(sys.argv[1] if len(sys.argv) >= 2 else __file__).parent
 globalPackagePath: Path = Path(__file__).parent.parent.parent / "lib"
@@ -71,7 +72,7 @@ def read(path: String, isJson = False, lines = False) -> String | Table:
             res = json.loads(res)
     except Exception as e:
         print(e)
-        return Error({}, "IOError", "Error when reading from file")
+        return Error({}, typ = "IOError", value = str(e))
     if not isJson:
         if not lines:
             return String(value = res)
@@ -95,7 +96,7 @@ def write(path: String, content: Value, isJson=False, lines=False, append=Number
         with open(pth, mode, encoding="utf8") as f:
             f.write(cont)
     except Exception as e:
-        return Error({}, "IOError", str(e))
+        return Error({}, typ = "IOError", value = str(e))
     return content
 
 def exists(path: String) -> Number:
@@ -159,6 +160,8 @@ Fs: Table = Table(value = {
 def encode(res: Table) -> String:
     return String(value = json.dumps(makeObject(res)))
 def decode(res: String) -> Table:
+    # print("Now decoding JSON:")
+    # print(res.value)
     return makeTable(json.loads(res.value))
 Json: Table = Table(value = {
     String(value = "encode"): BuiltinClosure(fn = encode),
@@ -261,6 +264,33 @@ Benchmark: Table = Table(value = {
     String(value = "measureMul"): BuiltinClosure(fn = measureMultiple)
 })
 
+conn = None
+def sqlInit(path: String) -> Nil:
+    global conn
+    conn = sqlite3.connect(path.value)
+    return Nil()
+def sqlExecute(query: String) -> String:
+    global conn
+    cur = conn.cursor()
+    try:
+        cur.execute(query.value)
+        # Check if this is a query returning data
+        if cur.description is not None:
+            rows = cur.fetchall()
+            # Convert to string for easy output
+            return String(value = "\n".join(str(row) for row in rows))
+        else:
+            conn.commit()
+            return String(value = "")
+    except Exception as e:
+        return f"Error: {e}"
+    finally:
+        cur.close()
+Sqlite: Table = Table(value = {
+    String(value = "init"): BuiltinClosure(fn = sqlInit),
+    String(value = "execute"): BuiltinClosure(fn = sqlExecute)
+})
+
 def dynamicImport(file_path: str):
     # Ensure the file exists
     if not os.path.isfile(file_path):
@@ -356,6 +386,7 @@ def makeGlobal() -> Env:
         "argv": makeTable(sys.argv[1:]),
         "func": Func,
         "benchmark": Benchmark,
+        "sql": Sqlite,
         "type": BuiltinClosure(fn = getType),
         "copy": BuiltinClosure(fn = copy),
         "string": BuiltinClosure(fn = lambda x: x.toString()),

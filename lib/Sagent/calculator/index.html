@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="calculator-container">
+        <header>
+            <h1><i class="fas fa-calculator"></i> Calculator</h1>
+            <p class="subtitle">A simple web calculator with basic operations</p>
+        </header>
+        
+        <main>
+            <div class="calculator">
+                <!-- Display Screen -->
+                <div class="display">
+                    <div class="previous-operand" id="previous-operand"></div>
+                    <div class="current-operand" id="current-operand">0</div>
+                </div>
+                
+                <!-- Calculator Buttons -->
+                <div class="buttons">
+                    <!-- First Row -->
+                    <button class="btn operator" data-action="clear">C</button>
+                    <button class="btn operator" data-action="backspace"><i class="fas fa-backspace"></i></button>
+                    <button class="btn operator" data-action="percentage">%</button>
+                    <button class="btn operator" data-action="divide">÷</button>
+                    
+                    <!-- Second Row -->
+                    <button class="btn number" data-number="7">7</button>
+                    <button class="btn number" data-number="8">8</button>
+                    <button class="btn number" data-number="9">9</button>
+                    <button class="btn operator" data-action="multiply">×</button>
+                    
+                    <!-- Third Row -->
+                    <button class="btn number" data-number="4">4</button>
+                    <button class="btn number" data-number="5">5</button>
+                    <button class="btn number" data-number="6">6</button>
+                    <button class="btn operator" data-action="subtract">−</button>
+                    
+                    <!-- Fourth Row -->
+                    <button class="btn number" data-number="1">1</button>
+                    <button class="btn number" data-number="2">2</button>
+                    <button class="btn number" data-number="3">3</button>
+                    <button class="btn operator" data-action="add">+</button>
+                    
+                    <!-- Fifth Row -->
+                    <button class="btn number zero" data-number="0">0</button>
+                    <button class="btn number" data-action="decimal">.</button>
+                    <button class="btn equals" data-action="equals">=</button>
+                </div>
+                
+                <!-- Operation History (optional) -->
+                <div class="history">
+                    <h3><i class="fas fa-history"></i> Recent Operations</h3>
+                    <ul id="history-list"></ul>
+                    <button class="btn-small" id="clear-history">Clear History</button>
+                </div>
+            </div>
+            
+            <div class="instructions">
+                <h3><i class="fas fa-info-circle"></i> How to Use</h3>
+                <ul>
+                    <li>Click numbers to input values</li>
+                    <li>Use operators (+, −, ×, ÷) for calculations</li>
+                    <li>Press "=" to calculate result</li>
+                    <li>"C" clears everything, backspace removes last digit</li>
+                    <li>Use "." for decimal numbers</li>
+                </ul>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Calculator Web Application &copy; 2023</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

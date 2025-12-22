@@ -1,5 +1,7 @@
 include("./llm.ty");
 
+sql.init("./medical_system.db");
+
 loadPrompt := (filePath) => {
     fs.readText("./prompt/{filePath}")
 };
@@ -17,7 +19,12 @@ tools := [    # All tools that agent can use
     },
     "ReadFile": (filePath) => {
         println("Reading from file: {filePath}");
-        fs.readText(filePath)
+        try {
+            fs.readText(filePath)
+        } catch (e) => {
+            println("Error occured: {e}")
+            "{e}"
+        }
     },
     "WriteFile": (filePathAndContent) => {
         println("Writing to file: {filePathAndContent['path']}");
@@ -25,6 +32,24 @@ tools := [    # All tools that agent can use
         content := filePathAndContent["content"];
         fs.writeText(filePath, content);
         nil
+    },
+    "Command": (cmd) => {
+        println("Running command: {cmd}")
+        os.run(cmd)
+    },
+    "API": (prop) => {
+        println("Running commands: {prop['type']}")
+        res := match prop["type"] {
+            "Weather": "sunny",
+            "Date": "2025-12-21",
+            "Database": sql.execute(prop["params"]),
+            _: "No such API"
+        }
+    },
+    "Script": (code) => {
+        println("Running Python script")
+        fs.writeText("./tempPythonFile.py", code)
+        os.run("python tempPythonFile.py")
     }
 ];
 main := () => {
@@ -55,6 +80,7 @@ main := () => {
                     0
                 },
                 _: {
+                    println(res);
                     toolRes := tools[res["type"]](res["data"]);
                     rd = json.encode([
                         "type": "Result",

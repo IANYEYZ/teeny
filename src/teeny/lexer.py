@@ -91,6 +91,21 @@ def findMatchingRightParen(src: str, pos: int):
         pos += 1
     return pos
 
+def escapeString(s: str) -> str:
+    inner = s  # remove quotes
+    result = []
+    i = 0
+    while i < len(inner):
+        if inner[i] == "\\" and i + 1 < len(inner):
+            nxt = inner[i + 1]
+            if nxt == "n": result.append("\n"); i += 2; continue
+            if nxt == "t": result.append("\t"); i += 2; continue
+            if nxt == "\\": result.append("\\"); i += 2; continue
+            if nxt == '"': result.append('"'); i += 2; continue
+            if nxt == '\'': result.append('\''); i += 2; continue
+            # leave unknown escapes untouched
+        result.append(inner[i]); i += 1
+    return "".join(result)
 def parseString(src: str, pos: int, quoteChar: str):
     pos += 1
     now = ""
@@ -101,7 +116,7 @@ def parseString(src: str, pos: int, quoteChar: str):
         return res
     while src[pos] != quoteChar:
         if src[pos] == "{" and not flag:
-            res.append(Token("STRING", now, 0, 0))
+            res.append(Token("STRING", escapeString(now), 0, 0))
             now = ""
             res.append(Token("INTE_START", "", 0, 0))
             ed = findMatchingRightParen(src, pos)
@@ -114,7 +129,7 @@ def parseString(src: str, pos: int, quoteChar: str):
             else: flag = False
             now += src[pos]
             pos = pos + 1
-    if now != "": res.append(Token("STRING", now, 0, 0))
+    if now != "": res.append(Token("STRING", escapeString(now), 0, 0))
     return res
 
 def tokenize(src: str) -> list[Token]:

@@ -10,4 +10,7 @@ You are a task planner
 - Calculator: calculate expressions
 - ReadFile: read from local file
 - WriteFile: write to local file
+- Command: run cmd command
+- API: run a specific set of APIs
+- Script: run Python script
 </possible_tools>
