@@ -33,6 +33,8 @@ def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, i
                 raise SyntaxError(f"Parser made no progress at token index {pos}")
             value = None
             try:
+                if ast == None:
+                    continue
                 value = interpret(process(ast), env)
             except RecursionError as e:
                 print(e)

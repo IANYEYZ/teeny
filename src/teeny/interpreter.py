@@ -3,8 +3,10 @@ from teeny.value import Bubble, Value, Number, String, Table, Closure, Nil, Env,
     , snapshot, isTruthy, match, makeObject, makeTable, Regex
 from teeny.glob import makeGlobal
 from teeny.exception import RuntimeError
+from typing import Callable
 
-def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defAssign: bool = False) -> Value:
+def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, 
+                   assignConfig: Callable = lambda a, b: b) -> Value:
     if lhs.typ != "TABLE":
         if lhs.typ == "NAME":
             if lhs.value == "_":
@@ -13,10 +15,8 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defA
                 env.define(lhs.value, rhs)
                 return rhs
             else:
-                if not defAssign or (isinstance(env.read(lhs.value), Nil) or env.read(lhs.value) == None):
-                    val = env.write(lhs.value, rhs)
-                    if isinstance(val, Error): return val
-                    return rhs
+                val = env.write(lhs.value, assignConfig(env.read(lhs.value), rhs))
+                if isinstance(val, Error): return val
                 return env.read(lhs.value)
         elif lhs.value == ".":
             l = interpret(lhs.children[0], env)
@@ -25,10 +25,8 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defA
                 l.define(r, rhs)
                 return rhs
             else:
-                if not defAssign or (isinstance(l.get(r), Nil) or l.get(r) == None):
-                    val = l.set(r, rhs)
-                    if isinstance(val, Error): return val
-                    return rhs
+                val = l.set(r, assignConfig(l.get(r), rhs))
+                if isinstance(val, Error): return val
                 return l.take(r)
         elif lhs.value == "[]":
             l = interpret(lhs.children[0], env)
@@ -37,25 +35,23 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, defA
                 l.define(r, rhs)
                 return rhs
             else:
-                if not defAssign or (isinstance(l.get(r), Nil) or l.get(r) == None):
-                    val = l.set(r, rhs)
-                    if isinstance(val, Error): return val
-                    return rhs
+                val = l.set(r, assignConfig(l.get(r), rhs))
+                if isinstance(val, Error): return val
                 return l.take(r)
     else:
         cnt: int = 0
         res = Table({})
         for c in lhs.children:
             if c.typ == "PAIR":
-                val = assignVariable(c.children[1], rhs.get(String(value = c.children[0].value)), env, isDeclare, defAssign)
+                val = assignVariable(c.children[1], rhs.get(String(value = c.children[0].value)), env, isDeclare, assignConfig)
                 if isinstance(val, Error): return val
                 res.define(String(value = c.children[0].value), val)
             elif c.typ == "NAME" and not isinstance(rhs.get(String(value = c.value)), Nil):
-                val = assignVariable(c, rhs.get(String(value = c.value)), env, isDeclare, defAssign)
+                val = assignVariable(c, rhs.get(String(value = c.value)), env, isDeclare, assignConfig)
                 if isinstance(val, Error): return val
                 res.append(val)
             else:
-                val = assignVariable(c, rhs.get(Number(value = cnt)), env, isDeclare, defAssign)
+                val = assignVariable(c, rhs.get(Number(value = cnt)), env, isDeclare, assignConfig)
                 if isinstance(val, Error): return val
                 cnt += 1
                 res.append(val)
@@ -228,8 +224,8 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         lhs = ast.children[0]
         rhs = interpret(ast.children[1], env)
         if isinstance(rhs, Error) or isinstance(rhs, Bubble): return rhs
-        if not isinstance(rhs, Table):
-            return Error(typ = "Runtime Error", value = "iterate non-Table")
+        if rhs.get(String(value = "_iter_")) == Nil():
+            return Error(typ = "Runtime Error", value = "iterate non-Iterable")
         curEnv = snapshot(env)
         lst = Table()
         st = rhs.get(String(value = "_iter_"))([], [])
@@ -237,7 +233,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         while not isinstance(v, Nil):
             p = v
             env = snapshot(curEnv)
-            assignVariable(lhs, rhs.get(p), env, True)
+            assignVariable(lhs, rhs.take(p), env, True)
             val = interpret(ast.children[2], env)
             if isinstance(val, Bubble):
                 if val.typ == "BREAK":
@@ -411,7 +407,38 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             # The left is guarenteed a name or a Table
             val = interpret(ast.children[1], env)
             if isinstance(val, Error) or isinstance(val, Bubble): return val
-            return assignVariable(ast.children[0], val, env, False, True)
+            return assignVariable(ast.children[0], val, env, False,
+                                  lambda a, b: b if a == Nil() else a)
+        if ast.value == "+=":
+            # The left is guarenteed a name or a Table
+            val = interpret(ast.children[1], env)
+            if isinstance(val, Error) or isinstance(val, Bubble): return val
+            return assignVariable(ast.children[0], val, env, False,
+                                  lambda a, b: a + b)
+        if ast.value == "-=":
+            # The left is guarenteed a name or a Table
+            val = interpret(ast.children[1], env)
+            if isinstance(val, Error) or isinstance(val, Bubble): return val
+            return assignVariable(ast.children[0], val, env, False,
+                                  lambda a, b: a - b)
+        if ast.value == "*=":
+            # The left is guarenteed a name or a Table
+            val = interpret(ast.children[1], env)
+            if isinstance(val, Error) or isinstance(val, Bubble): return val
+            return assignVariable(ast.children[0], val, env, False,
+                                  lambda a, b: a * b)
+        if ast.value == "/=":
+            # The left is guarenteed a name or a Table
+            val = interpret(ast.children[1], env)
+            if isinstance(val, Error) or isinstance(val, Bubble): return val
+            return assignVariable(ast.children[0], val, env, False,
+                                  lambda a, b: a / b)
+        if ast.value == "%=":
+            # The left is guarenteed a name or a Table
+            val = interpret(ast.children[1], env)
+            if isinstance(val, Error) or isinstance(val, Bubble): return val
+            return assignVariable(ast.children[0], val, env, False,
+                                  lambda a, b: a % b)
         if ast.value == ".":
             lhs = interpret(ast.children[0], env)
             if isinstance(lhs, Error) or isinstance(lhs, Bubble): return lhs

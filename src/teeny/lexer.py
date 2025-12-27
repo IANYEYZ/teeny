@@ -20,6 +20,11 @@ TOKENS: list[tuple[str, str]] = [
     ("ARROW",       r"=>"),
 
     ("DEFASSIGN",   r"\?\="),
+    ("PLUSASSIGN",   r"\+\="),
+    ("SUBASSIGN",   r"-\="),
+    ("MULASSIGN",   r"\*\="),
+    ("DIVASSIGN",   r"/\="),
+    ("MODASSIGN",   r"%\="),
     ("QEQE",        r"\?\?"),
     ("QECOLON",     r"\?\:"),
 

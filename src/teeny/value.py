@@ -139,6 +139,7 @@ class String(Value):
         self.register(String(value = "format", noConstruct = True), BuiltinClosure(fn = self.format))
         self.register(String(value = "replace", noConstruct = True), BuiltinClosure(fn = self.replace))
         self.register(String(value = "count", noConstruct = True), BuiltinClosure(fn = self.count))
+        self.register(String(value = "_iter_", noConstruct = True), BuiltinClosure(fn = self._iter_))
 
     @requireType("add a non-String to a String")
     def __add__(self, rhs: "String") -> "String":
@@ -169,7 +170,21 @@ class String(Value):
     
     def take(self, pos: Value) -> Value:
         if isinstance(pos, Number):
-            return String(value = self.value[int(pos.value)])
+            return String(value = self.value[int(pos.value) % len(self.value)])
+        elif isinstance(pos, Table):
+            res = ""
+            for p in range(pos.size):
+                res += self.take(pos.take(Number(value = p))).value
+            return String(value = res)
+        elif isinstance(pos, String):
+            if self.value.find(pos.value) != -1:
+                return String(value = pos.value)
+            else:
+                return Nil()
+        elif isinstance(pos, Regex):
+            matches = pos.find(self)
+            res = matches.toList()[0].value if matches.size > 0 else Nil()
+            return String(value = res)
         else:
             return super().get(pos)
     def set(self, pos: Value, val: Value) -> Union["Error", "Nil"]:
@@ -223,6 +238,18 @@ class String(Value):
         except Exception:
             cnt = 0.0
         return Number(value = float(cnt))
+    def _iter_(self, val = [], kw = {}) -> Callable:
+        # Default iterative protocol
+        cur = 0
+        end = len(self.value)
+        def nxt(val = [], kw = []) -> Union[Number, "Nil"]:
+            nonlocal cur
+            if cur < end:
+                cur += 1
+                return Number(value = cur - 1)
+            else:
+                return Nil()
+        return nxt
 
 @dataclass
 class Regex(Value):
