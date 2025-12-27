@@ -1,0 +1,10 @@
+popcount := (n) => {
+    v := 0
+    while n {
+        v = v + n % 2;
+        n = n / 2
+    }
+    v
+}
+
+popcount(5)

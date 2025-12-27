@@ -1,0 +1,3 @@
+fs.readJson("test.json").something[1]
+
+fs.writeJson("test.txt", ["Hello, world!"], append = 1)
