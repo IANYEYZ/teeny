@@ -71,7 +71,6 @@ def read(path: String, isJson = False, lines = False) -> String | Table:
         if isJson:
             res = json.loads(res)
     except Exception as e:
-        print(e)
         return Error({}, typ = "IOError", value = str(e))
     if not isJson:
         if not lines:
@@ -101,38 +100,62 @@ def write(path: String, content: Value, isJson=False, lines=False, append=Number
 
 def exists(path: String) -> Number:
     pth: str = srcPath / path.value
-    return Number(value = int(os.path.exists(pth)))
+    try:
+        return Number(value = int(os.path.exists(pth)))
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
 def listDir(path: String) -> Table:
     pth: str = srcPath / path.value
-    lis = os.listdir(pth)
+    try:
+        lis = os.listdir(pth)
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     res = Table({})
     for item in lis:
         res.append(String(value = item))
     return res
 def isFile(path: String) -> Number:
     pth: str = srcPath / path.value
-    res = os.path.isfile(pth)
+    try:
+        res = os.path.isfile(pth)
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     return Number(value = int(res))
 def isDir(path: String) -> Number:
     pth: str = srcPath / path.value
-    res = os.path.isdir(pth)
+    try:
+        res = os.path.isdir(pth)
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     return Number(value = int(res))
 def copy(src: String, dst: String) -> Nil:
     pthSrc: str = srcPath / src
     pthDst: str = srcPath / dst
-    shutil.copy2(pthSrc, pthDst)
+    try:
+        shutil.copy2(pthSrc, pthDst)
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     return Nil()
 def move(src: String, dst: String) -> Nil:
     pthSrc: str = srcPath / src
     pthDst: str = srcPath / dst
-    shutil.move(pthSrc, pthDst)
+    try:
+        shutil.move(pthSrc, pthDst)
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     return Nil()
 def join(table: Table) -> String:
     tab = table.toList()
-    return String(value = os.path.join(tab))
+    try:
+        return String(value = os.path.join(tab))
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
 def findFiles(path: String, check: Value = BuiltinClosure(fn = lambda *args: True)) -> Table:
     pth: str = srcPath / path.value
-    lis = filter(lambda pth: check([String(value = pth)], []), os.listdir(pth))
+    try:
+        lis = filter(lambda pth: check([String(value = pth)], []), os.listdir(pth))
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     res = Table({})
     for item in lis:
         res.append(String(value = item))
@@ -158,11 +181,15 @@ Fs: Table = Table(value = {
 })
 
 def encode(res: Table) -> String:
-    return String(value = json.dumps(makeObject(res)))
+    try:
+        return String(value = json.dumps(makeObject(res)))
+    except Exception as e:
+        return Error({}, typ = "JsonError", value = str(e))
 def decode(res: String) -> Table:
-    # print("Now decoding JSON:")
-    # print(res.value)
-    return makeTable(json.loads(res.value))
+    try:
+        return makeTable(json.loads(res.value))
+    except Exception as e:
+        return Error({}, typ = "JsonError", value = str(e))
 Json: Table = Table(value = {
     String(value = "encode"): BuiltinClosure(fn = encode),
     String(value = "stringnify"): BuiltinClosure(fn = encode),
@@ -174,7 +201,10 @@ Json: Table = Table(value = {
 
 def HTTPGet(url: String, params = Nil(), headers = Nil()) -> Table:
     urlString: str = url.value
-    r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers))
+    try:
+        r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers))
+    except Exception as e:
+        return Error({}, typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -183,7 +213,10 @@ def HTTPGet(url: String, params = Nil(), headers = Nil()) -> Table:
     })
 def HTTPPost(url: String, data: Table, headers: Table | Nil = Nil()) -> Table:
     urlString = url.value
-    r = requests.post(urlString, json = makeObject(data), headers = makeObject(headers))
+    try:
+        r = requests.post(urlString, json = makeObject(data), headers = makeObject(headers))
+    except Exception as e:
+        return Error({}, typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -192,7 +225,10 @@ def HTTPPost(url: String, data: Table, headers: Table | Nil = Nil()) -> Table:
     })
 def HTTPPatch(url: String, data: Table, headers: Table) -> Table:
     urlString = url.value
-    r = requests.patch(urlString, json = makeObject(data), headers = makeObject(headers))
+    try:
+        r = requests.patch(urlString, json = makeObject(data), headers = makeObject(headers))
+    except Exception as e:
+        return Error({}, typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -205,7 +241,10 @@ Http: Table = Table(value = {
 })
 
 def Run(command: String) -> String:
-    return String(value = subprocess.run(command.value.split(), capture_output = True, text = True).stdout)
+    try:
+        return String(value = subprocess.run(command.value.split(), capture_output = True, text = True).stdout)
+    except Exception as e:
+        return Error({}, typ = "OSError", value = str(e))
 def getEnv(name: String) -> String | Nil:
     envPath = srcPath / ".env"
     for line in open(envPath).readlines():
@@ -222,7 +261,10 @@ def setEnv(name: String, value: String) -> Nil:
             s += f"{k} = {value.value}\n"
         else:
             s += f"{k} = {v}\n"
-    open(envPath, "w").write(s)
+    try:
+        open(envPath, "w").write(s)
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     return Nil()
 Os: Table = Table(value = {
     String(value = "platform"): BuiltinClosure(fn = lambda: sys.platform),
@@ -245,15 +287,20 @@ Func: Table = Table(value = {
     String(value = "compose"): BuiltinClosure(fn = Compose)
 })
 
-def measure(fn: Value) -> Number:
+def measure(fn: Value) -> Number | Error:
     st = time.time()
-    fn([], [])
+    res = fn([], [])
+    if isinstance(res, Error):
+        return res
     ed = time.time()
     return Number(value = ed - st)
-def measureMultiple(fn: Value, runs: Number) -> Table:
+def measureMultiple(fn: Value, runs: Number) -> Table | Error:
     tm = []
     for _ in range(runs.value):
-        tm.append(measure(fn))
+        res = measure(fn)
+        if isinstance(res, Error):
+            return res
+        tm.append(res)
     return Table(value = {
         String(value = "mean"): Number(value = statistics.mean(list(map(lambda item: item.value, tm)))),
         String(value = "max"): Number(value = max(list(map(lambda item: item.value, tm)))),
@@ -274,10 +321,8 @@ def sqlExecute(query: String) -> String:
     cur = conn.cursor()
     try:
         cur.execute(query.value)
-        # Check if this is a query returning data
         if cur.description is not None:
             rows = cur.fetchall()
-            # Convert to string for easy output
             return String(value = "\n".join(str(row) for row in rows))
         else:
             conn.commit()
@@ -292,15 +337,11 @@ Sqlite: Table = Table(value = {
 })
 
 def dynamicImport(file_path: str):
-    # Ensure the file exists
     if not os.path.isfile(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-    # Create a module name based on the file name (without extension)
+        return Error({}, typ = "Import Error", value = f"Module file {file_path} not found")
     module_name = os.path.basename(file_path).replace(".py", "")
-    # Load the module using importlib
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
-    # Execute the module
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module.getGlobal()
@@ -344,11 +385,14 @@ def getType(val: Value) -> String:
     if isinstance(val, ValError): return String(value = "error")
     if isinstance(val, Closure) or isinstance(val, BuiltinClosure): return String(value = "closure")
     if isinstance(val, Nil): return String(value = "nil")
-    return String(value = "Unknown")
+    return String(value = "unknown")
 
 def Print(*x) -> Nil:
-    for i in x:
-        print(makeObject(i), end = '')
+    try:
+        for i in x:
+            print(makeObject(i.toString()), end = '')
+    except Exception as e:
+        return Error({}, typ = "IOError", value = str(e))
     return Nil()
 
 def table(*args, **kwargs):

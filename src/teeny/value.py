@@ -520,7 +520,6 @@ class Env(dict):
             return self.get(name)
         else:
             if self.outer == None:
-                print(name)
                 return Error(typ = "Runtime Error", value = f"read from non-existing variable")
             return self.outer.read(name)
     
@@ -587,6 +586,12 @@ class Closure:
         for ast in self.implementation:
             from teeny.interpreter import interpret
             lst = interpret(ast, nEnv)
+            if isinstance(lst, Bubble):
+                if lst.typ == "RETURN":
+                    return lst.val
+                return lst
+            if isinstance(lst, Error):
+                return lst
         return lst
     def toString(self) -> "String":
         return String(value = "Closure")

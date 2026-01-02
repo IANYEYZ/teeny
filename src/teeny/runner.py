@@ -42,7 +42,7 @@ def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, i
             if isinstance(value, Error):
                 if print_res: print("=>", makeObject(value))
                 # print(ast)
-                print(makeObject(value))
+                # print(makeObject(value))
                 return value
             if print_each and value is not None:
                 if print_res: print("=>", makeObject(value))

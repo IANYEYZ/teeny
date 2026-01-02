@@ -254,10 +254,7 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         nEnv = Env(env)
         for b in ast.children:
             lst = interpret(b, nEnv)
-            if isinstance(lst, Bubble):
-                if lst.typ == "RETURN":
-                    return lst.val
-                return lst
+            if isinstance(lst, Bubble): return lst
             if isinstance(lst, Error): return lst
         return lst
     elif ast.typ == "MATCH":

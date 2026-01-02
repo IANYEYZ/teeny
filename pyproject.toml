@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=77.0.3", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "teeny"
+version = "0.0.1"
+description = "A tiny programming language"
+authors = [{ name = "Ian", email = "Ian.ye01@outlook.com" }]
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.scripts]
+teeny = "teeny.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.urls]
+Homepage = "https://github.com/IANYEYZ/teeny"
+Issues = "https://github.com/IANYEYZ/teeny/issues"

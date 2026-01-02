@@ -16,6 +16,7 @@ import shutil
 def checkParenBalance(src):
     cnt = [0, 0, 0]
     flag = [0, 0]
+    skip = False
     for p in range(len(src)):
         if src[p] == "(" and not flag[0] and not flag[1]:
             cnt[0] += 1
@@ -29,8 +30,10 @@ def checkParenBalance(src):
             cnt[2] += 1
         if src[p] == "}" and not flag[0] and not flag[1]:
             cnt[2] -= 1
-        if src[p] == '"': flag[0] = not flag[0]
-        if src[p] == "'": flag[1] = not flag[1]
+        if src[p] == '"' and not flag[1] and not skip: flag[0] = not flag[0]
+        if src[p] == "'" and not flag[0] and not skip: flag[1] = not flag[1]
+        if src[p] == '\\' and (flag[0] or flag[1]):
+            skip = True
     return cnt[0] == 0 and cnt[1] == 0 and cnt[2] == 0
 
 def readCode():
