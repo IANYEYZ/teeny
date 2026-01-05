@@ -169,6 +169,8 @@ class String(Value):
         return self.value.__hash__()
     
     def take(self, pos: Value) -> Value:
+        if isinstance(pos, String) and super().get(pos) != Nil():
+            return super().get(pos)
         if isinstance(pos, Number):
             return String(value = self.value[int(pos.value) % len(self.value)])
         elif isinstance(pos, Table):
@@ -186,7 +188,7 @@ class String(Value):
             res = matches.toList()[0].value if matches.size > 0 else Nil()
             return String(value = res)
         else:
-            return super().get(pos)
+            return Error(typ = "Runtime Error", value = "index String with invalid index")
     def set(self, pos: Value, val: Value) -> Union["Error", "Nil"]:
         if not isinstance(val, String):
             return Error(typ = "Runtime Error", value = "set String with non-String")

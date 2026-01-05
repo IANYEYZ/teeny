@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "teeny"
-version = "0.1.0"
+version = "0.2.0"
 description = "A tiny programming language"
 authors = [{ name = "Ian", email = "Ian.ye01@outlook.com" }]
 readme = "README.md"

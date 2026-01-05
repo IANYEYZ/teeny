@@ -4,7 +4,7 @@ from teeny.parser import parse
 from teeny.processor import process
 from teeny.interpreter import interpret
 from teeny.exception import LexicalError, SyntaxError, RuntimeError
-from teeny.value import makeObject, Error
+from teeny.value import makeObject, Error, Value, Nil
 from teeny.glob import makeGlobal
 
 def run(code: str, env: Env = makeGlobal()) -> Env:
@@ -56,3 +56,11 @@ def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, i
         print(f"File not found: {pathOrCode}")
     except (LexicalError, SyntaxError, RuntimeError) as e:
         print(e)
+def Run(code: str, env: Env = makeGlobal()) -> Value:
+    rhs = None; p = 0; lst = Nil()
+    while True:
+        rhs, p = parse(tokenize(code), p)
+        lst = interpret(process(rhs), env)
+        if p >= len(tokenize(code)):
+            break
+    return lst

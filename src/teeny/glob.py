@@ -64,7 +64,7 @@ Err = Table(value = {
 })
 
 def read(path: String, isJson = False, lines = False) -> String | Table:
-    pth: str = srcPath / path.value
+    pth: str = Path(os.getcwd()) / path.value
     res: str = ""
     try:
         res = open(pth, "r", encoding = "utf8").read()
@@ -83,7 +83,7 @@ def read(path: String, isJson = False, lines = False) -> String | Table:
     else:
         return makeTable(res)
 def write(path: String, content: Value, isJson=False, lines=False, append=Number(value=0)) -> Value:
-    pth = str(srcPath / path.value)
+    pth = str(Path(os.getcwd()) / path.value)
     if isJson:
         cont = json.dumps(makeObject(content))
     elif lines:
@@ -129,16 +129,16 @@ def isDir(path: String) -> Number:
         return Error({}, typ = "IOError", value = str(e))
     return Number(value = int(res))
 def copy(src: String, dst: String) -> Nil:
-    pthSrc: str = srcPath / src
-    pthDst: str = srcPath / dst
+    pthSrc: str = srcPath / src.value
+    pthDst: str = srcPath / dst.value
     try:
         shutil.copy2(pthSrc, pthDst)
     except Exception as e:
         return Error({}, typ = "IOError", value = str(e))
     return Nil()
 def move(src: String, dst: String) -> Nil:
-    pthSrc: str = srcPath / src
-    pthDst: str = srcPath / dst
+    pthSrc: str = srcPath / Path(src.value)
+    pthDst: str = srcPath / Path(dst.value)
     try:
         shutil.move(pthSrc, pthDst)
     except Exception as e:
@@ -402,9 +402,10 @@ def table(*args, **kwargs):
         res.append(i)
     return res
 
-def evaluate(code: String) -> Value:
+def evaluate(code: String, env: Table = Table()) -> Value:
+    envObj = makeGlobal(); Mix(env, envObj)
     from teeny.runner import run_code
-    res = run_code(code.value, print_each = False, print_res = False, is_file = False)
+    res = run_code(code.value, print_each = False, print_res = False, is_file = False, defEnv = envObj)
     return res
 
 def makeGlobal() -> Env:

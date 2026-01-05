@@ -1,0 +1,6 @@
+versionNumber := fs.readText("pyproject.toml").split("\n")
+            .filter(item => item.find(" = ") != -1)
+            .filter(item => item.find("version") == 0)[0].split("=")[1].trim().slice(1, -2);
+            # a little bit weird, will fix later
+run("rmdir /s /q .\\dist");
+run("python -m build"); run("pip install .\\dist\\teeny-{versionNumber}-py3-none-any.whl --force-reinstall")
