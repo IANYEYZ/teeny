@@ -5,7 +5,7 @@ from teeny.parser import parse
 from teeny.processor import process
 from teeny.interpreter import interpret
 from teeny.exception import LexicalError, SyntaxError, RuntimeError
-from teeny.value import makeObject, String, makeTable
+from teeny.value import makeObject, String, makeTable, Error
 from teeny.runner import run_code
 from teeny.glob import makeGlobal, getType
 from pathlib import Path
@@ -115,7 +115,10 @@ def main():
         print(f"Module {src.name} installed successfully.")
         sys.exit(0)
         
-    run_code(sys.argv[1], print_each = True, print_res = False)
+    res = run_code(sys.argv[1], print_each = True, print_res = False)
+    if isinstance(res, Error):
+        print("Error:", res.typ, res.value)
+
 
 if __name__ == "__main__":
     main()
