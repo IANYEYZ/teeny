@@ -153,7 +153,7 @@ def join(table: Table) -> String:
 def findFiles(path: String, check: Value = BuiltinClosure(fn = lambda *args: True)) -> Table:
     pth: str = srcPath / path.value
     try:
-        lis = filter(lambda pth: check([String(value = pth)], []), os.listdir(pth))
+        lis = filter(lambda pth: check([String(value = str(pth))], []), os.listdir(pth))
     except Exception as e:
         return Error({}, typ = "IOError", value = str(e))
     res = Table({})
@@ -195,11 +195,11 @@ Json: Table = Table(value = {
     String(value = "stringnify"): BuiltinClosure(fn = encode),
     String(value = "decode"): BuiltinClosure(fn = decode),
     String(value = "parse"): BuiltinClosure(fn = decode),
-    String(value = "read"): BuiltinClosure(fn = Fs.get(String(value = "readJson"))),
-    String(value = "write"): BuiltinClosure(fn = Fs.get(String(value = "writeJson")))
+    String(value = "read"): Fs.get(String(value = "readJson")),
+    String(value = "write"): Fs.get(String(value = "writeJson"))
 })
 
-def HTTPGet(url: String, params = Nil(), headers = Nil()) -> Table:
+def HTTPGet(url: String, params: Table | Nil = Nil(), headers: Table | Nil = Nil()) -> Table:
     urlString: str = url.value
     try:
         r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers))
