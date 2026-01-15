@@ -404,8 +404,6 @@ class Table(Value):
             if isinstance(val, Error): return val
             if not isTruthy(val):
                 return Nil()
-        if self.value.get(pos) == None:
-            return Error(typ = "Runtime Error", value = "setting non-existing property")
         self.value[pos] = val
         return val
     def define(self, pos: Value, val: Value) -> Value:
@@ -566,6 +564,13 @@ class Env(dict):
     def __init__(self, outer: Optional["Env"] = None) -> None:
         self.outer = outer
     
+    def find(self, name: str) -> bool:
+        if self.get(name) != None:
+            return True
+        else:
+            if self.outer == None: return False
+            return self.outer.find(name)
+    
     def read(self, name: str) -> Value:
         if self.get(name) != None:
             return self.get(name)
@@ -584,8 +589,11 @@ class Env(dict):
             return self.outer.write(name, val)
     
     def define(self, name: str, val: Value) -> Value:
-        self.update({name: val})
-        return val
+        if self.find(name):
+            return self.write(name, val)
+        else:
+            self.update({name: val})
+            return val
 @dataclass
 class Closure:
     params: list[str] = field(default_factory = list)

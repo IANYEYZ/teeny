@@ -2,42 +2,25 @@ from teeny.AST import AST
 from teeny.value import Bubble, Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore\
     , snapshot, isTruthy, match, makeObject, makeTable, Regex
 from teeny.glob import makeGlobal
-from teeny.exception import RuntimeError
 from typing import Callable
 
 def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, 
                    assignConfig: Callable = lambda a, b: b) -> Value:
     if lhs.typ != "TABLE":
         if lhs.typ == "NAME":
-            if lhs.value == "_":
-                return Nil()
-            if isDeclare:
-                env.define(lhs.value, rhs)
-                return rhs
-            else:
-                val = env.write(lhs.value, assignConfig(env.read(lhs.value), rhs))
-                if isinstance(val, Error): return val
-                return env.read(lhs.value)
+            return env.define(lhs.value, rhs)
         elif lhs.value == ".":
             l = interpret(lhs.children[0], env)
             r = String(value = lhs.children[1].value)
-            if isDeclare:
-                l.define(r, rhs)
-                return rhs
-            else:
-                val = l.set(r, assignConfig(l.get(r), rhs))
-                if isinstance(val, Error): return val
-                return l.take(r)
+            val = l.set(r, assignConfig(l.get(r), rhs))
+            if isinstance(val, Error): return val
+            return l.take(r)
         elif lhs.value == "[]":
             l = interpret(lhs.children[0], env)
             r = interpret(lhs.children[1], env)
-            if isDeclare:
-                l.define(r, rhs)
-                return rhs
-            else:
-                val = l.set(r, assignConfig(l.get(r), rhs))
-                if isinstance(val, Error): return val
-                return l.take(r)
+            val = l.set(r, assignConfig(l.get(r), rhs))
+            if isinstance(val, Error): return val
+            return l.take(r)
     else:
         cnt: int = 0
         res = Table({})

@@ -96,27 +96,23 @@ But there are some special ones you’ll see later:
   x |> f |> g
   ```
 
-## Assignment vs Definition
+## Assignment & Definition
 
-Teeny makes a clear distinction between **defining** a new variable and **assigning** to an existing variable:
+Teeny makes a no distinction between **defining** a new variable and **assigning** to an existing variable:
 
-* **Define a variable:**
-
-  ```teeny
-  name := "Alice"
-  ```
-
-  If `name` didn’t exist in current scope, it’s created in the current scope.
-
-* **Assign to a variable:**
+**Define a or Assign to a variable:**
 
   ```teeny
   name = "Bob"
   ```
 
-  If `name` already exists in some outer scope(possibly current scope), this changes its value.
+  If `name` already exists in some outer scope(possibly current scope), this changes its value. Otherwise, it creates a new variable called `name`. It's also possible(at least up till now) but really not suggested to use `:=`:
 
-If you try to assign to a variable that hasn’t been defined yet, Teeny will raise an error — so always use `:=` when introducing a new name. And if you try to define a new variable that already existed in current scope, Teeny will also raise an error.
+  ```teeny
+  name := "Bob"
+  ```
+
+  This is for the reason of backward compatibility, and could be removed in any version onward. It's also suggested to change all `:=` to `=` in exisiting projects
 
 That covers the core ideas you’ll need to start writing basic Teeny code.
 Next up: **Tables**
