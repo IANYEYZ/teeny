@@ -608,8 +608,11 @@ class Closure:
         self.default = []
         for item in params:
             if isinstance(item, list):
-                self.params.append(item[0])
-                self.default.append(item)
+                if len(item) == 1:
+                    self.params.append([item[0]])
+                else:
+                    self.params.append(item[0])
+                    self.default.append(item)
             else:
                 self.params.append(item)
         self.implementation = implementation; self.env = snapshot(env) if isDynamic else env;
@@ -630,11 +633,19 @@ class Closure:
             dVal = self.default[pos][1]
             from teeny.interpreter import assignVariable
             assignVariable(param, dVal, nEnv, True, False)
-        if len(value) > len(self.params):
+        if len(value) > len(self.params) and not isinstance(self.params[-1], list):
+            value = value[0:len(self.params)]
+        elif isinstance(self.params[-1], list):
+            lst = value[len(self.params) - 1:]
             value = value[0:len(self.params)]
         for pos, param in enumerate(self.params):
             from teeny.interpreter import assignVariable
-            if pos < len(value):
+            if isinstance(param, list):
+                res = Table()
+                for i in lst:
+                    res.append(i)
+                assignVariable(param[0], res, nEnv, True, False)
+            elif pos < len(value):
                 assignVariable(param, value[pos], nEnv, True, False)
         for pos, param in enumerate(kwarg):
             from teeny.interpreter import assignVariable

@@ -89,9 +89,12 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             params = []
             while tokens[p].typ != "RPAREN":
                 rhs, p = parse(tokens, p, 0)
-                params.append(rhs)
                 if rhs.value == "=":
                     params.append([rhs.children[0], rhs.children[1]])
+                elif rhs.value == "...":
+                    params.append([rhs.children[0]])
+                else:
+                    params.append(rhs)
                 if tokens[p].typ == "COMMA": p += 1
             p = advance(tokens, p, "RPAREN")
             isDynamic = False
@@ -203,9 +206,12 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
         params = []
         while tokens[p].typ != "RPAREN":
             rhs, p = parse(tokens, p, 0)
-            params.append(rhs)
             if rhs.value == "=":
                 params.append([rhs.children[0], rhs.children[1]])
+            elif rhs.value == "...":
+                params.append([rhs.children[0]])
+            else:
+                params.append(rhs)
             if tokens[p].typ == "COMMA": p += 1
         p = advance(tokens, p, "RPAREN")
         if isDynamic:

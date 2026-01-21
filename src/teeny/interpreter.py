@@ -120,9 +120,12 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         res = []
         for v in ast.value:
             if isinstance(v, list):
-                val = interpret(v[1], env)
-                if isinstance(val, Error) or isinstance(val, Bubble): return val
-                res.append([v[0], val])
+                if len(v) == 1:
+                    res.append([v[0]])
+                else:
+                    val = interpret(v[1], env)
+                    if isinstance(val, Error) or isinstance(val, Bubble): return val
+                    res.append([v[0], val])
             else:
                 res.append(v)
         value = Closure(res, ast.children, Env(outer = env), False)
