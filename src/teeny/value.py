@@ -632,10 +632,10 @@ class Closure:
             param = self.default[pos][0]
             dVal = self.default[pos][1]
             from teeny.interpreter import assignVariable
-            assignVariable(param, dVal, nEnv, True, False)
-        if len(value) > len(self.params) and not isinstance(self.params[-1], list):
+            assignVariable(param, dVal, nEnv, True)
+        if len(value) > len(self.params) and len(self.params) > 0 and not isinstance(self.params[-1], list):
             value = value[0:len(self.params)]
-        elif isinstance(self.params[-1], list):
+        elif len(self.params) > 0 and isinstance(self.params[-1], list):
             lst = value[len(self.params) - 1:]
             value = value[0:len(self.params)]
         for pos, param in enumerate(self.params):
@@ -644,12 +644,12 @@ class Closure:
                 res = Table()
                 for i in lst:
                     res.append(i)
-                assignVariable(param[0], res, nEnv, True, False)
+                assignVariable(param[0], res, nEnv, True)
             elif pos < len(value):
-                assignVariable(param, value[pos], nEnv, True, False)
+                assignVariable(param, value[pos], nEnv, True)
         for pos, param in enumerate(kwarg):
             from teeny.interpreter import assignVariable
-            assignVariable(param[0], param[1], nEnv, True, False)
+            assignVariable(param[0], param[1], nEnv, True)
         nEnv.define("this", self)
         # nEnv.define("n", value[0])
         lst = None

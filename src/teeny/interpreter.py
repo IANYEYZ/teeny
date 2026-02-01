@@ -8,7 +8,12 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False,
                    assignConfig: Callable = lambda a, b: b) -> Value:
     if lhs.typ != "TABLE":
         if lhs.typ == "NAME":
-            return env.define(lhs.value, rhs)
+            if lhs.value == "_":
+                return Nil()
+            if env.find(lhs.value) == False:
+                return env.define(lhs.value, assignConfig(Nil(), rhs))
+            else:
+                return env.define(lhs.value, assignConfig(env.read(lhs.value), rhs))
         elif lhs.value == ".":
             l = interpret(lhs.children[0], env)
             r = String(value = lhs.children[1].value)

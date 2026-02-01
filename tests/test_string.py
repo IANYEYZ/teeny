@@ -14,7 +14,7 @@ class TestString(unittest.TestCase):
         self.assertEqual(makeObject(run_code('"a" * 3', False, False, False)), "aaa")
     def test_string_get_and_set(self):
         self.assertEqual(makeObject(run_code('"a"[0]', False, False, False)), "a")
-        self.assertEqual(makeObject(run_code('a := "a"; a[0] = "b"; a', False, False, False)), "b")
+        self.assertEqual(makeObject(run_code('a = "a"; a[0] = "b"; a', False, False, False)), "b")
     def test_string_builtin(self):
         self.assertEqual(makeObject(run_code('"a".len()', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('"abcde".slice(1, 3)', False, False, False)), "bc")
@@ -26,10 +26,10 @@ class TestString(unittest.TestCase):
         self.assertEqual(makeObject(run_code('"a b c".split(" ")', False, False, False)), ["a", "b", "c"])
         self.assertEqual(makeObject(run_code('" ".join(["a", "b", "c"])', False, False, False)), "a b c")
     def test_string_interpolation(self):
-        self.assertEqual(makeObject(run_code('name := 1; "a{name}b"', False, False, False)), "a1b")
-        self.assertEqual(makeObject(run_code('name := 1; "a\{name\}b"', False, False, False)), "a{name}b")
-        self.assertEqual(makeObject(run_code('name := 1; "a{\'name\'}b"', False, False, False)), "anameb")
-        self.assertEqual(makeObject(run_code('name := 1; "a{\'{name}\'}b"', False, False, False)), "a1b")
+        self.assertEqual(makeObject(run_code('name = 1; "a{name}b"', False, False, False)), "a1b")
+        self.assertEqual(makeObject(run_code('name = 1; "a\{name\}b"', False, False, False)), "a{name}b")
+        self.assertEqual(makeObject(run_code('name = 1; "a{\'name\'}b"', False, False, False)), "anameb")
+        self.assertEqual(makeObject(run_code('name = 1; "a{\'{name}\'}b"', False, False, False)), "a1b")
 
 if __name__ == "__main__":
     unittest.main()
