@@ -120,7 +120,7 @@ def parseString(src: str, pos: int, quoteChar: str):
     flag = False
     if src[pos] == quoteChar:
         res.append(Token("STRING", "", 0, 0))
-        return res
+        return [res, pos + 1]
     while src[pos] != quoteChar:
         if src[pos] == "{" and not flag:
             res.append(Token("STRING", escapeString(now), 0, 0))
@@ -137,7 +137,7 @@ def parseString(src: str, pos: int, quoteChar: str):
             now += src[pos]
             pos = pos + 1
     if now != "": res.append(Token("STRING", escapeString(now), 0, 0))
-    return res
+    return [res, pos + 1]
 
 def tokenize(src: str) -> list[Token]:
     pos = 0
@@ -146,28 +146,29 @@ def tokenize(src: str) -> list[Token]:
     m = MASTER_RE.match
     n = len(src)
     while pos < n:
-        mo = m(src, pos)
-        if not mo:
+        if src[pos] == "\"" or src[pos] == "'":
+            val = parseString(src, pos, src[pos])
+            pos = val[1]
+            out.extend(val[0])
+        else:
+            mo = m(src, pos)
+            if not mo:
+                line = src.count("\n", 0, pos) + 1
+                line_start = src.rfind("\n", 0, pos) + 1
+                col = pos - line_start + 1
+                snippet = src[pos : pos + 20].splitlines()[0]
+                raise LexicalError(f"Unknown Character {src[pos]}", line, col)
+            kind = mo.lastgroup
+            lex = mo.group()
+            if kind in ("WS", "COMMENT"):
+                pos = mo.end()
+                continue
+            if kind == "NAME" and lex in KEYWORDS:
+                kind = KEYWORDS[lex]
             line = src.count("\n", 0, pos) + 1
             line_start = src.rfind("\n", 0, pos) + 1
             col = pos - line_start + 1
-            snippet = src[pos : pos + 20].splitlines()[0]
-            raise LexicalError(f"Unknown Character {src[pos]}", line, col)
-        kind = mo.lastgroup
-        lex = mo.group()
-        if kind in ("WS", "COMMENT"):
+            out.append(Token(kind, lex, line, col))
             pos = mo.end()
-            continue
-        if kind == "STRING":
-            quoteCharacter = lex[0]
-            out.extend(parseString(src, pos, quoteCharacter))
-            pos = mo.end()
-            continue
-        if kind == "NAME" and lex in KEYWORDS:
-            kind = KEYWORDS[lex]
-        line = src.count("\n", 0, pos) + 1
-        line_start = src.rfind("\n", 0, pos) + 1
-        col = pos - line_start + 1
-        out.append(Token(kind, lex, line, col))
-        pos = mo.end()
+    # print(out)
     return out

@@ -30,6 +30,7 @@ class TestString(unittest.TestCase):
         self.assertEqual(makeObject(run_code('name = 1; "a\{name\}b"', False, False, False)), "a{name}b")
         self.assertEqual(makeObject(run_code('name = 1; "a{\'name\'}b"', False, False, False)), "anameb")
         self.assertEqual(makeObject(run_code('name = 1; "a{\'{name}\'}b"', False, False, False)), "a1b")
+        self.assertEqual(makeObject(run_code('"a{"{"c"}"}b"', False, False, False)), "acb")
 
 if __name__ == "__main__":
     unittest.main()
