@@ -50,12 +50,32 @@ class Value:
         return self.metaTable.get(pos, Nil())
     def toString(self) -> "String":
         return String(value = "value")
+    def toPrint(self) -> "String":
+        return self.toString()
     def toNumber(self) -> "Error":
         return Error(typ = "Runtime Error", value = "convert non-Number to Number")
     def fact(self) -> "Error":
         return Error(typ = "Runtime Error", value = "calculate factorial for non-Number")
     def negative(self) -> "Error":
         return Error(typ = "Runtime Error", value = "calculate negative for non-Number")
+
+
+
+def isTruthy(value: Value) -> bool:
+    if isinstance(value, Number):
+        return bool(value.value)
+    elif isinstance(value, String):
+        return bool(len(value.value) > 0)
+    elif isinstance(value, Table):
+        return bool(len(value.value.keys()) > 0)
+    elif isinstance(value, Closure) or isinstance(value, BuiltinClosure):
+        return True
+    elif isinstance(value, Nil):
+        return False
+    elif isinstance(value, BuiltinValue):
+        return isTruthy(value.value)
+    else:
+        return False
 
 @dataclass
 class Number(Value):
@@ -64,6 +84,8 @@ class Number(Value):
     def __post_init__(self) -> None:
         super().__post_init__()
         self.register(String(value = "times"), BuiltinClosure(fn = self.times))
+        self.register(String(value = "negative"), BuiltinClosure(fn = self.negative))
+        self.register(String(value = "fact"), BuiltinClosure(fn = self.fact))
 
     @requireType("add a non-Number to a Number")
     def __add__(self, rhs: "Number") -> "Number":
@@ -137,8 +159,8 @@ class String(Value):
         self.register(String(value = "split", noConstruct = True), BuiltinClosure(fn = self.split))
         self.register(String(value = "join", noConstruct = True), BuiltinClosure(fn = self.join))
         self.register(String(value = "format", noConstruct = True), BuiltinClosure(fn = self.format))
-        self.register(String(value = "replace", noConstruct = True), BuiltinClosure(fn = self.replace))
         self.register(String(value = "count", noConstruct = True), BuiltinClosure(fn = self.count))
+        self.register(String(value = "number?", noConstruct = True), BuiltinClosure(fn = self.numberQ))
         self.register(String(value = "_iter_", noConstruct = True), BuiltinClosure(fn = self._iter_))
 
     @requireType("add a non-String to a String")
@@ -233,6 +255,8 @@ class String(Value):
         return String(value = self.value.format(*makeObject(tab.toList()), **makeObject(tab.toDict())))
     def toString(self) -> "String":
         return self
+    def toPrint(self) -> "String":
+        return String(value = '"' + self.value + '"')
     def toNumber(self) -> "Number":
         res = None
         try:
@@ -240,13 +264,12 @@ class String(Value):
         except ValueError:
             res = Error(typ = "Runtime Error", value = "convert non-Number to Number")
         return res
-    def replace(self, rhs: "Regex", res: "String") -> "String":
+    def numberQ(self) -> "Number":
         try:
-            pattern = re.compile(rhs.value)
-            replaced = pattern.sub(res.value, self.value)
-        except Exception:
-            replaced = self.value
-        return String(value = replaced)
+            res = float(self.value)
+            return Number(value = 1)
+        except ValueError:
+            return Number(value = 0)
     def count(self, rhs: "String") -> Number:
         try:
             cnt = self.value.count(rhs.value)
@@ -303,7 +326,8 @@ class Table(Value):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.register(String(value = "push"), BuiltinClosure(fn = self.append))
+        self.register(String(value = "push!"), BuiltinClosure(fn = self.append))
+        self.register(String(value = "pop!"), BuiltinClosure(fn = self.popE))
         self.register(String(value = "keys"), BuiltinClosure(fn = self.keys))
         self.register(String(value = "values"), BuiltinClosure(fn = self.values))
         self.register(String(value = "enumerate"), BuiltinClosure(fn = self.enumerate))
@@ -313,7 +337,7 @@ class Table(Value):
         self.register(String(value = "median"), BuiltinClosure(fn = lambda: makeTable(self.median())))
         self.register(String(value = "stdev"), BuiltinClosure(fn = lambda: makeTable(self.stdev())))
         self.register(String(value = "describe"), BuiltinClosure(fn = lambda: makeTable(self.describe())))
-        self.register(String(value = "has"), BuiltinClosure(fn = self.has))
+        self.register(String(value = "has?"), BuiltinClosure(fn = self.has))
         self.register(String(value = "map"), BuiltinClosure(fn = self.map))
         self.register(String(value = "sort"), BuiltinClosure(fn = lambda: self.sort()))
         self.register(String(value = "filter"), BuiltinClosure(fn = self.filter))
@@ -326,6 +350,14 @@ class Table(Value):
         self.register(String(value = "len"), BuiltinClosure(fn = self.len))
         self.register(String(value = "sub"), BuiltinClosure(fn = self.sub))
         self.register(String(value = "shuffle"), BuiltinClosure(fn = self.shuffle))
+        self.register(String(value = "find"), BuiltinClosure(fn = self.find))
+        self.register(String(value = "all?"), BuiltinClosure(fn = self.allQ))
+        self.register(String(value = "any?"), BuiltinClosure(fn = self.anyQ))
+        self.register(String(value = "none?"), BuiltinClosure(fn = self.noneQ))
+        self.register(String(value = "one?"), BuiltinClosure(fn = self.oneQ))
+        self.register(String(value = "compact"), BuiltinClosure(fn = self.compact))
+        self.register(String(value = "compact!"), BuiltinClosure(fn = self.compactE))
+        self.register(String(value = "drop"), BuiltinClosure(fn = self.drop))
 
     def __add__(self, rhs: "Table") -> "Table":
         if self.get(String(value = "_add_")) != Nil():
@@ -386,6 +418,16 @@ class Table(Value):
     def append(self, val: Value) -> Value:
         self.value[Number(value = self.size)] = val
         self.size += 1
+        return val
+    def popE(self, ind: Number) -> Value:
+        l = self.toList(); d = self.toDict()
+        val = l.pop(int(ind.value))
+        res = Table({})
+        for pos, i in enumerate(l):
+            res.set(Number(value = pos), i)
+        for k in d.keys():
+            res.set(k, d.get(k))
+        self.value = res.value
         return val
     def update(self, val: dict) -> None:
         self.value.update(val)
@@ -500,6 +542,11 @@ class Table(Value):
             if self.value.get(k) == key:
                 return Number(value = 1)
         return Number(value = 0)
+    def find(self, key: Value) -> Value:
+        for k in self.value.keys():
+            if self.value.get(k) == key:
+                return k
+        return Nil()
     def lPair(self) -> "Table":
         l = self.toList()
         res = Table()
@@ -547,6 +594,50 @@ class Table(Value):
         for item in l:
             res.append(item)
         return res
+    def allQ(self, fn = isTruthy) -> Number:
+        for k in self.value.keys():
+            if not fn(self.value.get(k)): return Number(0)
+        return Number(1)
+    def anyQ(self, fn = isTruthy) -> Number:
+        for k in self.value.keys():
+            if fn(self.value.get(k)): return Number(1)
+        return Number(0)
+    def emptyQ(self) -> Number:
+        if len(self.toList()) or len(self.toDict): return Number(1)
+        else: return Number(0)
+    def noneQ(self, key: Value) -> Number:
+        for k in self.value.keys():
+            if self.value.get(k) == key:
+                return Number(value = 0)
+        return Number(value = 1)
+    def oneQ(self, key: Value) -> Number:
+        cnt = 0
+        for k in self.value.keys():
+            if self.value.get(k) == key:
+                cnt += 1
+        return Number(value = (cnt == 1))
+    def compact(self) -> "Table":
+        res = Table()
+        for k in self.value.keys():
+            if self.value.get(k) != Nil():
+                res.define(k, self.value.get(k))
+        return res
+    def compactE(self) -> "Nil":
+        res = Table()
+        for k in self.value.keys():
+            if self.value.get(k) != Nil():
+                res.define(k, self.value.get(k))
+        self = res
+        return Nil()
+    def drop(self, cnt: Value) -> "Table":
+        res = Table()
+        l = self.toList()
+        for pos, i in enumerate(l):
+            if isinstance(cnt, Number):
+                if pos < cnt.value: continue
+            elif cnt([i], []): continue
+            res.define(Number(value = pos), i)
+        return res
     def _iter_(self, val = [], kw = {}) -> Callable:
         # Default iterative protocol
         cur = 0
@@ -576,7 +667,7 @@ class Env(dict):
             return self.get(name)
         else:
             if self.outer == None:
-                return Error(typ = "Runtime Error", value = f"read from non-existing variable")
+                return Error(typ = "Runtime Error", value = f"read from non-existing variable, try to read {name} but it doesn't exist")
             return self.outer.read(name)
     
     def write(self, name: str, val: Value) -> Value:
@@ -585,7 +676,7 @@ class Env(dict):
             return val
         else:
             if self.outer == None:
-                return Error(typ = "Runtime Error", value = f"assign to non-existing variable")
+                return Error(typ = "Runtime Error", value = f"assign to non-existing variable, try to assign to {name} but it doesn't exist")
             return self.outer.write(name, val)
     
     def define(self, name: str, val: Value) -> Value:
@@ -665,6 +756,8 @@ class Closure:
         return lst
     def toString(self) -> "String":
         return String(value = "Closure")
+    def toPrint(self) -> "String":
+        return self.toString()
     def toNumber(self) -> "Number":
         return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
@@ -771,30 +864,15 @@ def snapshot(e: Env) -> Env:
         res.update(e.copy())
         return res
 
-def isTruthy(value: Value) -> bool:
-    if isinstance(value, Number):
-        return bool(value.value)
-    elif isinstance(value, String):
-        return bool(len(value.value) > 0)
-    elif isinstance(value, Table):
-        return bool(len(value.value.keys()) > 0)
-    elif isinstance(value, Closure) or isinstance(value, BuiltinClosure):
-        return True
-    elif isinstance(value, Nil):
-        return False
-    elif isinstance(value, BuiltinValue):
-        return isTruthy(value.value)
-    else:
-        return False
-
-def makeTable(value: list | dict | str | int | bool | float | None | object) -> Value:
+def makeTable(value: list | tuple | dict | str | int | bool | float | None | object | Number) -> Value:
     if isinstance(value, int): return Number(value = value)
     elif isinstance(value, str):
         return String(value = value)
+    elif isinstance(value, Value): return value
     elif isinstance(value, bytes): return String(value = value.decode("utf-8"))
     elif isinstance(value, bool): return Number(value = int(value))
     elif isinstance(value, float): return Number(value = value)
-    elif isinstance(value, list):
+    elif isinstance(value, list) or isinstance(value, tuple):
         res = Table({})
         for item in value:
             res.append(makeTable(item))

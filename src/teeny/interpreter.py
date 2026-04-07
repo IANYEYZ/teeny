@@ -475,12 +475,3 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             lhs = interpret(ast.children[0], env)
             if isinstance(lhs, Error) or isinstance(lhs, Bubble): return lhs
             return Number(value = not isTruthy(lhs))
-    elif ast.typ == "SUFOP":
-        if ast.value == "!":
-            lhs = interpret(ast.children[0], env)
-            if isinstance(lhs, Error) or isinstance(lhs, Bubble): return lhs
-            return lhs.fact()
-        elif ast.value == "?":
-            lhs = interpret(ast.children[0], env)
-            if isinstance(lhs, Error) or isinstance(lhs, Bubble): return lhs
-            return Number(value = isTruthy(lhs))

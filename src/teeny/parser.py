@@ -281,7 +281,8 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
                 p += 1
                 lhs = AST("CALL", [lhs, *children])
             else:
-                lhs = AST("SUFOP", [lhs], op)
+                raise SyntaxError(f"Unexpected token: found {op}, except [ or ("
+                        , tokens[p].line, tokens[p].col)
             continue
         lBp, rBp = infixOperators(op)
         if lBp < minBp: break

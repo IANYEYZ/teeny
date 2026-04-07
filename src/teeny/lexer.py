@@ -61,12 +61,9 @@ TOKENS: list[tuple[str, str]] = [
 
     # literals
     ("REGEX",       r"`(?:\\.|[^`\\])*`"),
-
     ("STRING",      r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\''),
-
     ("NUMBER",      r"(?:\d+\.(?![A-Za-z_]|\.)(?:\d*)|\.\d+|\d+)(?:[eE][+-]?\d+)?"),
-
-    ("NAME",        r"[A-Za-z_][A-Za-z0-9_]*"),
+    ("NAME",        r"[A-Za-z_][A-Za-z0-9_!\?]*"),
 ]
 KEYWORDS: dict[str: str] = {
     "if": "IF",

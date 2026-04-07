@@ -301,11 +301,15 @@ def table(*args, **kwargs):
     for i in args:
         res.append(i)
     return res
+def Zip(table1: Table, table2: Table) -> Table:
+    l1 = table1.toList(); l2 = table2.toList()
+    return makeTable(list(zip(l1, l2)))
 Tab: Table = Table(value = {
     String(value = "_call_"): BuiltinClosure(fn = table),
     String(value = "filter"): BuiltinClosure(fn = filter),
     String(value = "map"): BuiltinClosure(fn = map),
-    String(value = "reduce"): BuiltinClosure(fn = reduce)
+    String(value = "reduce"): BuiltinClosure(fn = reduce),
+    String(value = "zip"): BuiltinClosure(fn = Zip)
 })
 
 def measure(fn: Value) -> Number | Error:
@@ -330,31 +334,6 @@ def measureMultiple(fn: Value, runs: Number) -> Table | Error:
 Benchmark: Table = Table(value = {
     String(value = "measure"): BuiltinClosure(fn = measure),
     String(value = "measureMul"): BuiltinClosure(fn = measureMultiple)
-})
-
-conn = None
-def sqlInit(path: String) -> Nil:
-    global conn
-    conn = sqlite3.connect(path.value)
-    return Nil()
-def sqlExecute(query: String) -> String:
-    global conn
-    cur = conn.cursor()
-    try:
-        cur.execute(query.value)
-        if cur.description is not None:
-            rows = cur.fetchall()
-            return String(value = "\n".join(str(row) for row in rows))
-        else:
-            conn.commit()
-            return String(value = "")
-    except Exception as e:
-        return f"Error: {e}"
-    finally:
-        cur.close()
-Sqlite: Table = Table(value = {
-    String(value = "init"): BuiltinClosure(fn = sqlInit),
-    String(value = "execute"): BuiltinClosure(fn = sqlExecute)
 })
 
 def dynamicImport(file_path: str):
@@ -411,7 +390,8 @@ def getType(val: Value) -> String:
 def Print(*x) -> Nil:
     try:
         for i in x:
-            print(makeObject(i.toString()), end = '')
+            if isinstance(i, str): print(i, end = '')
+            else: print(makeObject(i.toPrint()), end = '')
     except Exception as e:
         return Error({}, typ = "IOError", value = str(e))
     return Nil()
@@ -427,7 +407,7 @@ def makeGlobal() -> Env:
     gEnv.update({
         "math": Math,
         "print": BuiltinClosure(fn = Print),
-        "println": BuiltinClosure(fn = lambda *x: Print(*x, String(value = '\n'))),
+        "println": BuiltinClosure(fn = lambda *x: Print(*x, "\n")),
         "printmd": BuiltinClosure(fn = lambda *x: rprint(Markdown(' '.join([i.toString().value for i in x])))),
         "input": BuiltinClosure(fn = lambda s = String(value = ""): String(value = input(s.value))),
         "export": Table(value = {}),
@@ -447,12 +427,11 @@ def makeGlobal() -> Env:
         "argv": makeTable(sys.argv[1:]),
         "func": Func,
         "benchmark": Benchmark,
-        "sql": Sqlite,
         "type": BuiltinClosure(fn = getType),
         "copy": BuiltinClosure(fn = copy),
         "string": BuiltinClosure(fn = lambda x: x.toString()),
         "number": BuiltinClosure(fn = lambda x: x.toNumber()),
-        "bool": BuiltinClosure(fn = lambda x: isTruthy(x)),
+        "bool": BuiltinClosure(fn = isTruthy),
         "eval": BuiltinClosure(fn = evaluate)
     })
     return gEnv

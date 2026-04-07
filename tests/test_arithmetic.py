@@ -31,7 +31,6 @@ class TestArithmetic(unittest.TestCase):
         self.assertEqual(makeObject(run_code('1 > 0', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('1 <= 1', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('1 >= 0', False, False, False)), 1)
-        self.assertEqual(makeObject(run_code('3!', False, False, False)), 6)
         self.assertEqual(run_code('1 + "a"', False, False, False), Error(typ = "Runtime Error", value = "add a non-Number to a Number"))
         self.assertEqual(run_code('1 - "a"', False, False, False), Error(typ = "Runtime Error", value = "minus a non-Number from a Number"))
         self.assertEqual(run_code('1 * "a"', False, False, False), Error(typ = "Runtime Error", value = "multiply a non-Number with a Number"))
