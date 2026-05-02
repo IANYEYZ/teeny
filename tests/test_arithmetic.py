@@ -1,6 +1,6 @@
 import unittest
 from teeny.runner import run_code
-from teeny.value import makeObject, Error, Nil
+from teeny.value import makeObject, Error, Nil, String
 
 class TestArithmetic(unittest.TestCase):
     def test_basic_operator(self):

@@ -53,8 +53,8 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             rhs, p = parse(tokens, p, 0)
             lhs = AST("FN" if not isDynamic else "FN-DYNAMIC", [rhs], [name])
         else:
-            lhs = AST("NUMBER" 
-                      if tokens[p].typ == "NUMBER" 
+            lhs = AST("NUMBER"
+                      if tokens[p].typ == "NUMBER"
                       else "NAME", [], tokens[p].value)
             p += 1
     elif tokens[p].typ == "STRING":
@@ -224,18 +224,21 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             lhs = AST("FN", children, params)
     elif tokens[p].typ == "RETURN":
         p = advance(tokens, p, "RETURN")
-        lhs, p = parse(tokens, p, 0)
+        if tokens[p].typ == "SEMI": lhs, p = None, p + 1
+        else: lhs, p = parse(tokens, p, 0)
         lhs = AST("RETURN", [lhs])
     elif tokens[p].typ == "BREAK":
         p = advance(tokens, p, "BREAK")
-        lhs, p = parse(tokens, p, 0)
+        if tokens[p].typ == "SEMI": lhs, p = None, p + 1
+        else: lhs, p = parse(tokens, p, 0)
         if lhs == None:
             lhs = AST("BREAK", [])
         else:
             lhs = AST("BREAK", [lhs])
     elif tokens[p].typ == "CONTINUE":
         p = advance(tokens, p, "CONTINUE")
-        lhs, p = parse(tokens, p, 0)
+        if tokens[p].typ == "SEMI": lhs, p = None, p + 1
+        else: lhs, p = parse(tokens, p, 0)
         if lhs == None:
             lhs = AST("CONTINUE", [])
         else:

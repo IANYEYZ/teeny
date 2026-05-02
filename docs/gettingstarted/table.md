@@ -13,25 +13,11 @@ t := [1, 2, 3, key: "value"]
 
 * Elements without keys are stored sequentially (like a list).
 * Elements with `key: value` are stored by key (like a dictionary).
-* **Any value** can be a key — not just numbers or strings.
-
-Examples:
-
-```teeny
-# table with numeric and complex keys
-t := [1, 2, 3, [1,2]: [1,2,3]]
-```
-
-In this example:
-
-* `t[0] == 1`
-* `t[1] == 2`
-* `t[2] == 3`
-* `t[[1,2]] == [1,2,3]`
+* Only numbers, strings or regex can be key.
 
 ## **Structural Assignment**
 
-Sometimes you want to unpack a table into variables.
+Sometimes you might want to unpack a table into variables.
 Instead of assigning each element manually:
 
 ```teeny
@@ -65,7 +51,7 @@ Here:
 * `c = 2`
 * `d = 3`
 
-Structural assignment also works in `for` loops to destructure table elements — covered later.
+Structural assignment also works in `for` loops to destructure table elements, this will be covered later.
 
 It can also be more complex
 
@@ -106,12 +92,13 @@ Below is a summary of available table methods:
 
 | Method        | Description                                                    |
 | ------------- | -----------------------------------                            |
-| `push(value)` | Append `value` to the table                                    |
-| `keys()`      | Get a list of all keys                                         |
-| `values()`    | Get a list of all values                                       |
-| `enumerate()` | Get a list, each key is [index, value], only numeric index     |
-| `pairs()`     | Iterable key‑value iterator, only non-numeric index            |
-| `has(key)`    | Check if `key` exists in table                                 |
+| `push!(value)` | Append `value` to the table                                    |
+| `pop!(index)` | Pop the value at `index`                                   |
+| `keys()`      | Get a table of all keys                                         |
+| `values()`    | Get a table of all values                                       |
+| `enumerate()` | Get a table, each key is [index, value], only numeric index     |
+| `pairs()`     | Get a table, each key is [index, value], only non-numeric index            |
+| `has?(key)`    | Check if `key` exists in table                                 |
 
 ### Aggregation & Statistics
 
@@ -139,7 +126,9 @@ println(nums.mean())     # 2.5
 | ------------ | ------------------------------------------------------------ |
 | `map(fn)`    | Return a new table by applying `fn` to each element          |
 | `filter(fn)` | Return a new table of elements where `fn(element)` is truthy |
+| `reduce(fn, initial)` | for every value in table, let initial be fn(initial, value), return the final value |
 | `sort()`     | Sort table values in place                                   |
+| `shuffle()`     | Shuffle table values in place                                   |
 
 Examples:
 

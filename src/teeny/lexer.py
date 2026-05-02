@@ -110,7 +110,7 @@ def escapeString(s: str) -> str:
             # leave unknown escapes untouched
         result.append(inner[i]); i += 1
     return "".join(result)
-def parseString(src: str, pos: int, quoteChar: str):
+def lexString(src: str, pos: int, quoteChar: str):
     pos += 1
     now = ""
     res = []
@@ -144,7 +144,7 @@ def tokenize(src: str) -> list[Token]:
     n = len(src)
     while pos < n:
         if src[pos] == "\"" or src[pos] == "'":
-            val = parseString(src, pos, src[pos])
+            val = lexString(src, pos, src[pos])
             pos = val[1]
             out.extend(val[0])
         else:

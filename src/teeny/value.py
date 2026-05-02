@@ -256,7 +256,7 @@ class String(Value):
     def toString(self) -> "String":
         return self
     def toPrint(self) -> "String":
-        return String(value = '"' + self.value + '"')
+        return String(value = self.value)
     def toNumber(self) -> "Number":
         res = None
         try:
