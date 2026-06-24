@@ -17,6 +17,7 @@ from collections.abc import Callable
 import sqlite3
 from rich import print as rprint
 from rich.markdown import Markdown
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 srcPath: Path = Path(sys.argv[1] if len(sys.argv) >= 2 else __file__).parent
 globalPackagePath: Path = Path(__file__).parent.parent.parent / "lib"
@@ -204,7 +205,7 @@ Json: Table = Table(value = {
 def HTTPGet(url: String, params: Table | Nil = Nil(), headers: Table | Nil = Nil()) -> Table:
     urlString: str = url.value
     try:
-        r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers))
+        r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers), timeout=10)
     except Exception as e:
         return Error({}, typ = "HTTPError", value = str(e))
     return Table(value = {
@@ -213,17 +214,19 @@ def HTTPGet(url: String, params: Table | Nil = Nil(), headers: Table | Nil = Nil
         String(value = "content"): String(value = r.text),
         String(value = 'json'): makeTable(r.json())
     })
-def HTTPPost(url: String, data: Table, headers: Table | Nil = Nil()) -> Table:
+def HTTPPost(url: String, data: Table, headers: Table | Nil = Nil(), cookies: Table | Nil = Nil()) -> Table:
     urlString = url.value
     try:
-        r = requests.post(urlString, json = makeObject(data), headers = makeObject(headers))
+        r = requests.post(urlString, json = makeObject(data), headers = makeObject(headers), \
+                          cookies = makeObject(cookies))
     except Exception as e:
         return Error({}, typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
         String(value = "content"): String(value = r.text),
-        String(value = "json"): makeTable(r.json())
+        String(value = "cookie"): makeTable(r.cookies.get_dict()),
+        String(value = "json"): BuiltinClosure(fn = lambda: makeTable(r.json()))
     })
 def HTTPPatch(url: String, data: Table, headers: Table) -> Table:
     urlString = url.value
@@ -236,10 +239,101 @@ def HTTPPatch(url: String, data: Table, headers: Table) -> Table:
         String(value = "headers"): makeTable(dict(r.headers)),
         String(value = "content"): String(value = r.text)
     })
+def HTTPPut(url: String, data: Table) -> Table:
+    urlString = url.value
+    try:
+        r = requests.put(urlString, json = makeObject(data))
+    except Exception as e:
+        return Error({}, typ = "HTTPError", value = str(e))
+    return Table(value = {
+        String(value = "status"): Number(value = r.status_code),
+        String(value = "headers"): makeTable(dict(r.headers)),
+        String(value = "content"): String(value = r.text),
+        String(value = "cookie"): makeTable(r.cookies.get_dict()),
+        String(value = "json"): BuiltinClosure(fn = lambda: makeTable(r.json()))
+    })
+def HTTPDelete(url: String) -> Table:
+    urlString = url.value
+    try:
+        r = requests.delete(urlString)
+    except Exception as e:
+        return Error({}, typ = "HTTPError", value = str(e))
+    return Table(value = {
+        String(value = "status"): Number(value = r.status_code),
+        String(value = "headers"): makeTable(dict(r.headers)),
+        String(value = "content"): String(value = r.text),
+        String(value = "cookie"): makeTable(r.cookies.get_dict()),
+        String(value = "json"): BuiltinClosure(fn = lambda: makeTable(r.json()))
+    })
+def HTTPHead(url: String) -> Table:
+    urlString = url.value
+    try:
+        r = requests.head(urlString)
+    except Exception as e:
+        return Error({}, typ = "HTTPError", value = str(e))
+    return Table(value = {
+        String(value = "status"): Number(value = r.status_code),
+        String(value = "headers"): makeTable(dict(r.headers)),
+        String(value = "content"): String(value = ""),
+        String(value = "cookie"): makeTable(r.cookies.get_dict()),
+        String(value = "json"): BuiltinClosure(fn = lambda: makeTable(r.json()))
+    })
+def HTTPListen(portNumber: Number, handlerFn: Closure):
+    port = portNumber.value
+    handler = lambda *x: handlerFn([makeTable(i) for i in x], [])
+    class Handler(BaseHTTPRequestHandler):
+        def handle_method(self):
+            length = int(self.headers.get("content-length", "0"))
+            body = self.rfile.read(length).decode("utf-8") if length else ""
+
+            req = {
+                "method": self.command,
+                "path": self.path,
+                "headers": dict(self.headers),
+                "body": body,
+            }
+
+            res = makeObject(handler(req))
+            status = res.get("status", 200)
+            headers = res.get("headers", {})
+            body = res.get("body", "")
+
+            if "json" in res:
+                body = json.dumps(res["json"])
+                headers["content-type"] = "application/json"
+
+            if not isinstance(body, bytes):
+                body = str(body).encode("utf-8")
+
+            self.send_response(status)
+
+            for k, v in headers.items():
+                self.send_header(k, str(v))
+
+            self.send_header("content-length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self): self.handle_method()
+        def do_POST(self): self.handle_method()
+        def do_PUT(self): self.handle_method()
+        def do_PATCH(self): self.handle_method()
+        def do_DELETE(self): self.handle_method()
+        def do_HEAD(self): self.handle_method()
+
+    server = ThreadingHTTPServer(("0.0.0.0", int(port)), Handler)
+    server.serve_forever()
 Http: Table = Table(value = {
     String(value = "get"): BuiltinClosure(fn = HTTPGet),
     String(value = "post"): BuiltinClosure(fn = HTTPPost),
-    String(value = "patch"): BuiltinClosure(fn = HTTPPatch)
+    String(value = "patch"): BuiltinClosure(fn = HTTPPatch),
+    String(value = "delete"): BuiltinClosure(fn = HTTPDelete),
+    String(value = "put"): BuiltinClosure(fn = HTTPPut),
+    String(value = "head"): BuiltinClosure(fn = HTTPHead),
+    String(value = "listen"): BuiltinClosure(fn = HTTPListen),
+    String(value = "codes"): Table(value = {
+        String(value = "ok"): Number(value = requests.codes.ok)
+    })
 })
 
 def Run(command: String) -> String:

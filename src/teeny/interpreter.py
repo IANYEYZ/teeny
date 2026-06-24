@@ -4,6 +4,9 @@ from teeny.value import Bubble, Value, Number, String, Table, Closure, Nil, Env,
 from teeny.glob import makeGlobal
 from typing import Callable
 
+def bubbleOrError(value):
+    return isinstance(value, Bubble) or isinstance(value, Error)
+
 def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False, 
                    assignConfig: Callable = lambda a, b: b) -> Value:
     if lhs.typ != "TABLE":
@@ -150,9 +153,10 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         if kwargs.get("piped") != None:
             return value([kwargs.get("piped")], [])
         return value
-    elif ast.typ == "CALL":
+    elif ast.typ == "CALL" or ast.typ == "QCALL":
         value = interpret(ast.children[0], env)
         if isinstance(value, Error) or isinstance(value, Bubble): return value
+        if ast.typ == "QCALL" and value == Nil(): return value
         piped = None
         pipedUsed = False
         if kwargs.get("piped") != None:
@@ -451,6 +455,14 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
                 if isinstance(rhs, Error) or isinstance(rhs, Bubble): return rhs
                 return rhs([lhs], [])
             return rhs
+        if ast.value == "**":
+            lhs = interpret(ast.children[0], env)
+            rhs = interpret(ast.children[1], env)
+            if bubbleOrError(lhs): return lhs
+            if bubbleOrError(rhs): return rhs
+            if not isinstance(lhs, Number) or not isinstance(rhs, Number):
+                return Error(typ = "Runtime Error", value = "Non-number on either side of ** operator")
+            return Number(value = lhs.value ** rhs.value)
         if ast.value.startswith("<") and ast.value.endswith(">"):
             lhs = interpret(ast.children[0], env)
             if isinstance(lhs, Error) or isinstance(lhs, Bubble): return lhs

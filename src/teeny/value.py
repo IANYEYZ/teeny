@@ -160,7 +160,7 @@ class String(Value):
         self.register(String(value = "join", noConstruct = True), BuiltinClosure(fn = self.join))
         self.register(String(value = "format", noConstruct = True), BuiltinClosure(fn = self.format))
         self.register(String(value = "count", noConstruct = True), BuiltinClosure(fn = self.count))
-        self.register(String(value = "number?", noConstruct = True), BuiltinClosure(fn = self.numberQ))
+        self.register(String(value = "number", noConstruct = True), BuiltinClosure(fn = self.numberQ))
         self.register(String(value = "_iter_", noConstruct = True), BuiltinClosure(fn = self._iter_))
 
     @requireType("add a non-String to a String")
@@ -326,8 +326,8 @@ class Table(Value):
 
     def __post_init__(self) -> None:
         super().__post_init__()
-        self.register(String(value = "push!"), BuiltinClosure(fn = self.append))
-        self.register(String(value = "pop!"), BuiltinClosure(fn = self.popE))
+        self.register(String(value = "push"), BuiltinClosure(fn = self.append))
+        self.register(String(value = "pop"), BuiltinClosure(fn = self.popE))
         self.register(String(value = "keys"), BuiltinClosure(fn = self.keys))
         self.register(String(value = "values"), BuiltinClosure(fn = self.values))
         self.register(String(value = "enumerate"), BuiltinClosure(fn = self.enumerate))
@@ -337,7 +337,7 @@ class Table(Value):
         self.register(String(value = "median"), BuiltinClosure(fn = lambda: makeTable(self.median())))
         self.register(String(value = "stdev"), BuiltinClosure(fn = lambda: makeTable(self.stdev())))
         self.register(String(value = "describe"), BuiltinClosure(fn = lambda: makeTable(self.describe())))
-        self.register(String(value = "has?"), BuiltinClosure(fn = self.has))
+        self.register(String(value = "has"), BuiltinClosure(fn = self.has))
         self.register(String(value = "map"), BuiltinClosure(fn = self.map))
         self.register(String(value = "sort"), BuiltinClosure(fn = lambda: self.sort()))
         self.register(String(value = "filter"), BuiltinClosure(fn = self.filter))
@@ -351,12 +351,11 @@ class Table(Value):
         self.register(String(value = "sub"), BuiltinClosure(fn = self.sub))
         self.register(String(value = "shuffle"), BuiltinClosure(fn = self.shuffle))
         self.register(String(value = "find"), BuiltinClosure(fn = self.find))
-        self.register(String(value = "all?"), BuiltinClosure(fn = self.allQ))
-        self.register(String(value = "any?"), BuiltinClosure(fn = self.anyQ))
-        self.register(String(value = "none?"), BuiltinClosure(fn = self.noneQ))
-        self.register(String(value = "one?"), BuiltinClosure(fn = self.oneQ))
+        self.register(String(value = "all"), BuiltinClosure(fn = self.allQ))
+        self.register(String(value = "any"), BuiltinClosure(fn = self.anyQ))
+        self.register(String(value = "none"), BuiltinClosure(fn = self.noneQ))
+        self.register(String(value = "one"), BuiltinClosure(fn = self.oneQ))
         self.register(String(value = "compact"), BuiltinClosure(fn = self.compact))
-        self.register(String(value = "compact!"), BuiltinClosure(fn = self.compactE))
         self.register(String(value = "drop"), BuiltinClosure(fn = self.drop))
 
     def __add__(self, rhs: "Table") -> "Table":

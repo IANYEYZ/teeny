@@ -1,0 +1,16 @@
+print("listening!")
+http.listen(3000, (req) => {
+    print("here we are!")
+    match req.path {
+        "/ping": {
+            println("I got here!");
+            [body: "pong"]
+        },
+
+        "/self":
+            http.get("http://localhost:3000/ping").json(),
+
+        _: { println("we got here!");
+            [status: 404]}
+    }
+})

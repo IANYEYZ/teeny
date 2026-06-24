@@ -10,11 +10,11 @@ for [i, who] in [[1, "Alice"], [2, "Bob"], [3, "Cat"]] {
 }
 ```
 
-Teeny scripts can be run directly, and compiling to JavaScript and Python is in development. It also interoperates with existing Python code through a simple wrapper.
+Teeny scripts can be run directly, while compiling to JavaScript and Python is in development. It also interoperates with existing Python code through a simple wrapper.
 
 ## **Overview**
 
-Teeny provides multiple ways to achieve common tasks. Each style suits different situations, letting you write fluent, expressive code.
+Teeny provides multiple ways to achieve common tasks, this is to maximize development speed.
 
 ```teeny
 People := (name) => {
@@ -29,7 +29,7 @@ john := People("John")
 john.greet()
 ```
 
-Teeny has a complete builtin library, here’s a small part of it in action — iterating, filtering, and transforming:
+Teeny has a complete builtin library and builtin methods, here’s a small part of it in action — iterating, filtering, and transforming:
 
 ```teeny
 data := [1, 2, 3, 4, 5]
@@ -40,6 +40,12 @@ evenSquares :=
 
 println(evenSquares)  # [4, 16]
 ```
+
+## **Teeny's Philosiphy**
+
+Teeny is designed for development speed. In short, if you are worry about if you can still read your code after a year or after a long break - then change a language for this project, Teeny is not suitable.
+
+Teeny is for prototyping - 
 
 ## **Features Highlights**
 

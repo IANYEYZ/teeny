@@ -20,6 +20,7 @@ TOKENS: list[tuple[str, str]] = [
     ("OROR",        r"\|\|"),
     ("PIPE",        r"\|>"),
     ("ARROW",       r"=>"),
+    ("SQUARE",      r"\*\*"),
 
     ("DEFASSIGN",   r"\?\="),
     ("PLUSASSIGN",   r"\+\="),
@@ -29,6 +30,7 @@ TOKENS: list[tuple[str, str]] = [
     ("MODASSIGN",   r"%\="),
     ("QEQE",        r"\?\?"),
     ("QECOLON",     r"\?\:"),
+    ("LQEPAREN",    r"\?\("),
 
     ("SPREAD",      r"\.\.\."),   # must be before RNGLI
     ("RNGLI",       r"\.\."),     # must be before DOT
@@ -63,7 +65,7 @@ TOKENS: list[tuple[str, str]] = [
     ("REGEX",       r"`(?:\\.|[^`\\])*`"),
     ("STRING",      r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\''),
     ("NUMBER",      r"(?:\d+\.(?![A-Za-z_]|\.)(?:\d*)|\.\d+|\d+)(?:[eE][+-]?\d+)?"),
-    ("NAME",        r"[A-Za-z_][A-Za-z0-9_!\?]*"),
+    ("NAME",        r"[A-Za-z_][A-Za-z0-9_]*"),
 ]
 KEYWORDS: dict[str: str] = {
     "if": "IF",

@@ -14,6 +14,7 @@ def infixOperators(op) -> list[int]:
         '<=': [9, 10], '??': [9, 10], '?:': [9, 10],
         '+': [13, 14], '-': [13, 14], '..': [13, 14],
         '*': [15, 16], '/': [15, 16], '%': [15, 16],
+        '**': [18, 17],
         '.': [19, 20]
     }.get(op)
 
@@ -24,7 +25,7 @@ def prefixOperators(op) -> int:
 
 def suffixOperators(op) -> int:
     return {
-        '!': 17, '[': 17, '(': 17
+        '!': 17, '[': 17, '(': 17, '?(': 17
     }.get(op)
 
 def advance(tokens: list[Token], p: int, expectedTyp: str | list[str]) -> int:
@@ -269,11 +270,11 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             lBp = suffixOperators(op)
             if lBp < minBp: break
             p += 1
-            if op == '[':
+            if op == '[' or op == '?[':
                 rhs, p = parse(tokens, p, 0)
                 p += 1
-                lhs = AST("OP", [lhs, rhs], "[]")
-            elif op == '(':
+                lhs = AST("OP", [lhs, rhs], f"{op}]")
+            elif op == '(' or op == "?(":
                 children = []
                 while tokens[p].typ != "RPAREN":
                     rhs, p = parse(tokens, p, 0)
@@ -282,7 +283,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
                     if tokens[p].typ == "COMMA": p += 1
                     children.append(rhs)
                 p += 1
-                lhs = AST("CALL", [lhs, *children])
+                lhs = AST("CALL", [lhs, *children]) if op == '(' else AST("QCALL", [lhs, *children])
             else:
                 raise SyntaxError(f"Unexpected token: found {op}, except [ or ("
                         , tokens[p].line, tokens[p].col)
