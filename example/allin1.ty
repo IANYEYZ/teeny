@@ -1,8 +1,0 @@
-# This is a example with most of supporting features till current development
-# A sort of test
-func := fn (x, y)
-    if x == 1 && y != 1 then
-        x
-    end
-end
-x := fn(1, 1)

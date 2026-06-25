@@ -1,3 +1,0 @@
-sum := fn (x, y) x + y
-
-export["sum"] := sum

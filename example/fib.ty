@@ -1,9 +1,0 @@
-fib := fn (n) {
-    match (n) {
-        1: 1,
-        2: 1,
-        _: this(n - 1) + this(n - 2)
-    }
-}
-
-benchmark.measure(() => fib(25))

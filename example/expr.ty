@@ -1,8 +1,0 @@
-for i in range(1, 50) {
-    match [i % 3, i % 5] {
-        [0, 0]: "fizzbuzz",
-        [0, _]: "fizz",
-        [_, 0]: "buzz",
-        _: i
-    }
-}
