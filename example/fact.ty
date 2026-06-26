@@ -1,8 +1,0 @@
-fact := (n) => {
-    match (n) {
-        1: 1,
-        _: n * this(n - 1)
-    }
-};
-
-for i in 1..20 println(fact(i))
