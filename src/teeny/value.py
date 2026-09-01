@@ -289,6 +289,27 @@ class String(Value):
                 return Nil()
         return nxt
 
+
+
+@dataclass
+class Nil(Value):
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Nil, cls).__new__(cls)
+        return cls.instance
+    def toString(self) -> "String":
+        return String(value = "nil")
+    def toNumber(self) -> "Number":
+        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
+    def __eq__(self, rhs) -> Number:
+        if not isinstance(rhs, Nil):
+            return Number(value = 0)
+        return Number(value = 1)
+    def __ne__(self, rhs) -> Number:
+        if not isinstance(rhs, Nil):
+            return Number(value = 1)
+        return Number(value = 0)
+
 @dataclass
 class Regex(Value):
     value: str = ""
@@ -339,7 +360,7 @@ class Table(Value):
         self.register(String(value = "describe"), BuiltinClosure(fn = lambda: makeTable(self.describe())))
         self.register(String(value = "has"), BuiltinClosure(fn = self.has))
         self.register(String(value = "map"), BuiltinClosure(fn = self.map))
-        self.register(String(value = "sort"), BuiltinClosure(fn = lambda: self.sort()))
+        self.register(String(value = "sort"), BuiltinClosure(fn = self.sort))
         self.register(String(value = "filter"), BuiltinClosure(fn = self.filter))
         self.register(String(value = "reduce"), BuiltinClosure(fn = self.reduce))
         self.register(String(value = "_iter_"), BuiltinClosure(fn = self._iter_))
@@ -357,6 +378,7 @@ class Table(Value):
         self.register(String(value = "one"), BuiltinClosure(fn = self.oneQ))
         self.register(String(value = "compact"), BuiltinClosure(fn = self.compact))
         self.register(String(value = "drop"), BuiltinClosure(fn = self.drop))
+        self.register(String(value = "join", noConstruct = True), BuiltinClosure(fn = self.join))
 
     def __add__(self, rhs: "Table") -> "Table":
         if self.get(String(value = "_add_")) != Nil():
@@ -528,13 +550,18 @@ class Table(Value):
             "median": self.median(),
             "stdev": self.stdev()
         }
-    def sort(self) -> "Table":
+    def sort(self, fn: "Value" = Nil()) -> "Table":
+        if fn == Nil():
+            fn = BuiltinClosure(fn = lambda x: x)
         l = self.toList()
-        l.sort()
-        res = Table({})
-        res.value = self.toDict()
+        newL = []
         for i in l:
-            res.append(i)
+            newL.append([fn([i], []), i])
+        newL.sort(key = lambda x: x[0])
+        res = Table()
+        res.value = self.toDict()
+        for i in newL:
+            res.append(i[1])
         return res
     def has(self, key: Value) -> Number:
         for k in self.value.keys():
@@ -628,14 +655,19 @@ class Table(Value):
                 res.define(k, self.value.get(k))
         self = res
         return Nil()
+    def join(self, sep) -> "String":
+        l = makeObject(self.toList())
+        return String(value = sep.value.join(l))
     def drop(self, cnt: Value) -> "Table":
         res = Table()
         l = self.toList()
+        tot = 0
         for pos, i in enumerate(l):
             if isinstance(cnt, Number):
                 if pos < cnt.value: continue
             elif cnt([i], []): continue
-            res.define(Number(value = pos), i)
+            res.define(Number(value = tot), i)
+            tot += 1
         return res
     def _iter_(self, val = [], kw = {}) -> Callable:
         # Default iterative protocol
@@ -741,7 +773,6 @@ class Closure:
             from teeny.interpreter import assignVariable
             assignVariable(param[0], param[1], nEnv, True)
         nEnv.define("this", self)
-        # nEnv.define("n", value[0])
         lst = None
         for ast in self.implementation:
             from teeny.interpreter import interpret
@@ -784,50 +815,8 @@ class Error(Value):
         return Error(typ = "Runtime Error", value = "convert non-Number to Number")
 
 @dataclass
-class ValError(Value):
-    typ: str = ""
-    value: str = ""
-
-    def __post_init__(self) -> None:
-        super().__post_init__()
-        self.register(String(value = "type"), self.typ)
-        self.register(String(value = "value"), self.value)
-    
-    def __eq__(self, rhs) -> Number:
-        if not isinstance(rhs, Error):
-            return Number(value = 0)
-        return Number(value = int(self.typ == rhs.typ and self.value == rhs.value))
-    def __ne__(self, rhs) -> Number:
-        if not isinstance(rhs, Error):
-             return Number(value = 1)
-        return Number(value = int(self.typ != rhs.typ or self.value != rhs.value))
-    def toString(self) -> "String":
-        return String(value = f"Error({self.typ}, {self.value})")
-    def toNumber(self) -> "Number":
-        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
-
-@dataclass
-class Nil(Value):
-    def __new__(cls):
-        if not hasattr(cls, 'instance'):
-            cls.instance = super(Nil, cls).__new__(cls)
-        return cls.instance
-    def toString(self) -> "String":
-        return String(value = "nil")
-    def toNumber(self) -> "Number":
-        return Error(typ = "Runtime Error", value = "convert non-Number to Number")
-    def __eq__(self, rhs) -> Number:
-        if not isinstance(rhs, Nil):
-            return Number(value = 0)
-        return Number(value = 1)
-    def __ne__(self, rhs) -> Number:
-        if not isinstance(rhs, Nil):
-            return Number(value = 1)
-        return Number(value = 0)
-
-@dataclass
 class BuiltinClosure(Value):
-    fn: Callable = lambda: Number(value = 0)
+    fn: Callable = lambda *args: Number(value = 0)
     hasEnv: bool = False
 
     def __call__(self, value: list, kwarg: list = []) -> Value:
@@ -942,7 +931,7 @@ def makeObject(value: Value | dict | list) -> list | dict | str | int | bool | N
         return "Closure"
     elif isinstance(value, BuiltinClosure):
         return "Built-in Closure"
-    elif isinstance(value, Error) or isinstance(value, ValError):
+    elif isinstance(value, Error):
         return str({"type": value.typ, "value": value.value})
     elif isinstance(value, dict):
         res = {}

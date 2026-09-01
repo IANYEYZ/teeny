@@ -29,6 +29,13 @@ def suffixOperators(op) -> int:
     }.get(op)
 
 def advance(tokens: list[Token], p: int, expectedTyp: str | list[str]) -> int:
+    if p >= len(tokens):
+        if tokens:
+            last = tokens[-1]
+            line, col = last.line, last.col + len(last.value)
+        else:
+            line, col = 1, 1
+        raise SyntaxError(f"Unexpected end of input, expected {expectedTyp}", line, col)
     if not isinstance(expectedTyp, list):
         expectedTyp = [expectedTyp]
     for typ in expectedTyp:
@@ -80,6 +87,8 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
         p -= 1
         while res:
             p += 1
+            if p >= len(tokens):
+                break
             if tokens[p].typ == "RPAREN":
                 res -= 1
             elif tokens[p].typ == "LPAREN":
@@ -88,7 +97,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
         if p < len(tokens) and (tokens[p].typ == "ARROW" or tokens[p].typ == "AT"):
             p = nowPos
             params = []
-            while tokens[p].typ != "RPAREN":
+            while p < len(tokens) and tokens[p].typ != "RPAREN":
                 rhs, p = parse(tokens, p, 0)
                 if rhs.value == "=":
                     params.append([rhs.children[0], rhs.children[1]])
@@ -96,10 +105,10 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
                     params.append([rhs.children[0]])
                 else:
                     params.append(rhs)
-                if tokens[p].typ == "COMMA": p += 1
+                if p < len(tokens) and tokens[p].typ == "COMMA": p += 1
             p = advance(tokens, p, "RPAREN")
             isDynamic = False
-            if tokens[p].typ == "AT":
+            if p < len(tokens) and tokens[p].typ == "AT":
                 p = advance(tokens, p, "AT")
                 isDynamic = True
             p = advance(tokens, p, "ARROW")
@@ -113,7 +122,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     elif tokens[p].typ == "LSHPAREN":
         p = advance(tokens, p, "LSHPAREN")
         children = []
-        while tokens[p].typ != "RSHPAREN":
+        while p < len(tokens) and tokens[p].typ != "RSHPAREN":
             rhs, p = parse(tokens, p, 0)
             children.append(rhs)
         lhs = AST("BLOCK", children)
@@ -121,22 +130,22 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     elif tokens[p].typ == "LSQPAREN":
         p = advance(tokens, p, "LSQPAREN")
         children = []
-        while tokens[p].typ != "RSQPAREN":
+        while p < len(tokens) and tokens[p].typ != "RSQPAREN":
             if tokens[p].typ == "COLON":
                 p = advance(tokens, p, "COLON")
                 rhs, p = parse(tokens, p, 0)
                 children.append(AST("PAIR", [rhs]))
-                if tokens[p].typ == "COMMA": p += 1
+                if p < len(tokens) and tokens[p].typ == "COMMA": p += 1
                 continue
             rhs, p = parse(tokens, p, 0)
             children.append(rhs)
-            if tokens[p].typ == "COMMA": p = advance(tokens, p, "COMMA")
-            elif tokens[p].typ == "COLON":
+            if p < len(tokens) and tokens[p].typ == "COMMA": p = advance(tokens, p, "COMMA")
+            elif p < len(tokens) and tokens[p].typ == "COLON":
                 p += 1
                 rhs, p = parse(tokens, p, 0)
                 lhs = children.pop()
                 children.append(AST("PAIR", [lhs, rhs]))
-                if tokens[p].typ == "COMMA": p += 1
+                if p < len(tokens) and tokens[p].typ == "COMMA": p += 1
         lhs = AST("TABLE", children)
         p = advance(tokens, p, "RSQPAREN")
     elif tokens[p].typ == "IF":
@@ -176,18 +185,18 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     elif tokens[p].typ == "MATCH":
         p = advance(tokens, p, "MATCH")
         lhs, p = parse(tokens, p, 0)
-        if tokens[p].typ == "AS":
+        if p < len(tokens) and tokens[p].typ == "AS":
             p = advance(tokens, p, "AS")
             rhs, p = parse(tokens, p, 0)
             lhs = [lhs, rhs]
         p = advance(tokens, p, "LSHPAREN")
         children = []
-        while tokens[p].typ != "RSHPAREN":
+        while p < len(tokens) and tokens[p].typ != "RSHPAREN":
             rhs, p = parse(tokens, p, 0)
             p = advance(tokens, p, 'COLON')
             tr, p = parse(tokens, p, 0)
             children.append(AST("OPT", [rhs, tr]))
-            if tokens[p].typ == "COMMA":
+            if p < len(tokens) and tokens[p].typ == "COMMA":
                 p = advance(tokens, p, "COMMA")
         lhs = AST("MATCH", children, lhs)
         p = advance(tokens, p, "RSHPAREN")
@@ -200,12 +209,12 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
     elif tokens[p].typ == "FN":
         isDynamic = False
         p = advance(tokens, p, "FN")
-        if tokens[p].typ == "AT":
+        if p < len(tokens) and tokens[p].typ == "AT":
             p = advance(tokens, p, "AT")
             isDynamic = True
         p = advance(tokens, p, "LPAREN")
         params = []
-        while tokens[p].typ != "RPAREN":
+        while p < len(tokens) and tokens[p].typ != "RPAREN":
             rhs, p = parse(tokens, p, 0)
             if rhs.value == "=":
                 params.append([rhs.children[0], rhs.children[1]])
@@ -213,7 +222,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
                 params.append([rhs.children[0]])
             else:
                 params.append(rhs)
-            if tokens[p].typ == "COMMA": p += 1
+            if p < len(tokens) and tokens[p].typ == "COMMA": p += 1
         p = advance(tokens, p, "RPAREN")
         if isDynamic:
             rhs, p = parse(tokens, p, 0)
@@ -225,12 +234,12 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             lhs = AST("FN", children, params)
     elif tokens[p].typ == "RETURN":
         p = advance(tokens, p, "RETURN")
-        if tokens[p].typ == "SEMI": lhs, p = None, p + 1
+        if p < len(tokens) and tokens[p].typ == "SEMI": lhs, p = None, p + 1
         else: lhs, p = parse(tokens, p, 0)
         lhs = AST("RETURN", [lhs])
     elif tokens[p].typ == "BREAK":
         p = advance(tokens, p, "BREAK")
-        if tokens[p].typ == "SEMI": lhs, p = None, p + 1
+        if p < len(tokens) and tokens[p].typ == "SEMI": lhs, p = None, p + 1
         else: lhs, p = parse(tokens, p, 0)
         if lhs == None:
             lhs = AST("BREAK", [])
@@ -238,7 +247,7 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
             lhs = AST("BREAK", [lhs])
     elif tokens[p].typ == "CONTINUE":
         p = advance(tokens, p, "CONTINUE")
-        if tokens[p].typ == "SEMI": lhs, p = None, p + 1
+        if p < len(tokens) and tokens[p].typ == "SEMI": lhs, p = None, p + 1
         else: lhs, p = parse(tokens, p, 0)
         if lhs == None:
             lhs = AST("CONTINUE", [])
@@ -276,13 +285,13 @@ def parse(tokens: list[Token], p = 0, minBp = 0) -> list[AST | int]:
                 lhs = AST("OP", [lhs, rhs], f"{op}]")
             elif op == '(' or op == "?(":
                 children = []
-                while tokens[p].typ != "RPAREN":
+                while p < len(tokens) and tokens[p].typ != "RPAREN":
                     rhs, p = parse(tokens, p, 0)
                     if rhs.value == "=":
                         rhs = AST("KWARG", [rhs.children[0], rhs.children[1]])
-                    if tokens[p].typ == "COMMA": p += 1
+                    if p < len(tokens) and tokens[p].typ == "COMMA": p += 1
                     children.append(rhs)
-                p += 1
+                p = advance(tokens, p, "RPAREN")
                 lhs = AST("CALL", [lhs, *children]) if op == '(' else AST("QCALL", [lhs, *children])
             else:
                 raise SyntaxError(f"Unexpected token: found {op}, except [ or ("

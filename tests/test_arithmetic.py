@@ -46,7 +46,7 @@ class TestArithmetic(unittest.TestCase):
         self.assertEqual(run_code('"a" <= 1', False, False, False), Error(typ = "Runtime Error", value = "compare between non-String and String"))
         self.assertEqual(run_code('nil', False, False, False), Nil())
         self.assertEqual(makeObject(run_code('a = 1', False, False, False)), 1)
-        self.assertEqual(run_code('c', False, False, False), Error(typ = "Runtime Error", value = "read from non-existing variable"))
+        self.assertEqual(run_code('c', False, False, False), Error(typ = "Runtime Error", value = "read from non-existing variable, try to read c but it doesn't exist"))
         self.assertEqual(makeObject(run_code('a = 1; a ?= 2', False, False, False)), 1)
         self.assertEqual(makeObject(run_code('a = 1; b = nil; [a, b] ?= [2, 3]', False, False, False)), [1, 3])
         self.assertEqual(makeObject(run_code('[a, _] = [1, 2]', False, False, False)), [1, None])

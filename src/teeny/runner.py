@@ -8,12 +8,15 @@ from teeny.value import makeObject, Error, Value, Nil
 from teeny.glob import makeGlobal
 
 def run(code: str, env: Env = makeGlobal()) -> Env:
-    rhs = None; p = 0
-    while True:
-        rhs, p = parse(tokenize(code), p)
-        interpret(process(rhs), env)
-        if p >= len(tokenize(code)):
-            break
+    tokens = tokenize(code)
+    p = 0
+    while p < len(tokens):
+        before = p
+        rhs, p = parse(tokens, p)
+        if p == before:
+            raise SyntaxError(f"Parser made no progress at token index {p}")
+        if rhs is not None:
+            interpret(process(rhs), env)
     return env
 
 def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, is_file: bool = True, defEnv: Env = makeGlobal()) -> None:
@@ -57,10 +60,14 @@ def run_code(pathOrCode: str, print_each: bool = True, print_res: bool = True, i
     except (LexicalError, SyntaxError, RuntimeError) as e:
         print(e)
 def Run(code: str, env: Env = makeGlobal()) -> Value:
-    rhs = None; p = 0; lst = Nil()
-    while True:
-        rhs, p = parse(tokenize(code), p)
-        lst = interpret(process(rhs), env)
-        if p >= len(tokenize(code)):
-            break
+    tokens = tokenize(code)
+    p = 0
+    lst = Nil()
+    while p < len(tokens):
+        before = p
+        rhs, p = parse(tokens, p)
+        if p == before:
+            raise SyntaxError(f"Parser made no progress at token index {p}")
+        if rhs is not None:
+            lst = interpret(process(rhs), env)
     return lst

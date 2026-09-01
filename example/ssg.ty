@@ -1,0 +1,98 @@
+# ssg.ty
+# usage: teeny ssg.ty posts dist
+
+src = argv[1] ?? "posts"
+out = argv[2] ?? "dist"
+
+html_escape = (s) => {
+  s = string(s)
+  s["&"] = "&amp;"
+  s["<"] = "&lt;"
+  s[">"] = "&gt;"
+  s["\""] = "&quot;"
+  s
+}
+
+render_page = (title, body) => {
+println("here")
+"
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>{html_escape(title)}</title>
+  </head>
+  <body>
+    <nav><a href='/index.html'>Home</a></nav>
+    <h1>{html_escape(title)}</h1>
+    <pre>{html_escape(body)}</pre>
+  </body>
+</html>
+"}
+println("here1");
+
+read_post = (file) => {
+  text = fs.readText(file)
+  lines = text.split('\n')
+
+  title = lines[0] ?? path.stem(file)
+  println(lines)
+  body = lines.reduce((acc, line) => {
+      if acc == ""
+        line
+      else
+        acc + "\n" + line}, ""
+    );
+  println("here2");
+
+  [
+    "file": file,
+    "title": title,
+    "slug": path.stem(file),
+    "body": body
+  ]
+}
+
+posts =
+  fs.listDir(src)
+  .filter((name) => path.ext(name) == ".md")
+  .map((name) => read_post(path.join([src, name])))
+
+fs.mkdir(out)
+
+for post in posts {
+  target = path.join([out, "{post.slug}.html"])
+  println("here")
+  println(render_page(post.title, post.body))
+  fs.writeText(target, render_page(post.title, post.body))
+}
+
+items =
+  posts.map((post) =>
+    "<li><a href='{post.slug}.html'>{html_escape(post.title)}</a></li>"
+  ).reduce((acc, line) => {
+      if acc == ""
+        line
+      else
+        acc + "\n" + line}, ""
+    )
+
+index = "
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <title>My Site</title>
+  </head>
+  <body>
+    <h1>My Site</h1>
+    <ul>
+      {items}
+    </ul>
+  </body>
+</html>
+"
+
+fs.writeText(path.join([out, "index.html"]), index)
+
+print("built {posts.len()} pages")

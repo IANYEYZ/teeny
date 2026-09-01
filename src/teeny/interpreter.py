@@ -1,5 +1,5 @@
 from teeny.AST import AST
-from teeny.value import Bubble, Value, Number, String, Table, Closure, Nil, Env, Error, ValError, BuiltinClosure, Underscore\
+from teeny.value import Bubble, Value, Number, String, Table, Closure, Nil, Env, Error, BuiltinClosure, Underscore\
     , snapshot, isTruthy, match, makeObject, makeTable, Regex
 from teeny.glob import makeGlobal
 from typing import Callable
@@ -29,6 +29,8 @@ def assignVariable(lhs: AST, rhs: Value, env: Env, isDeclare: bool = False,
             val = l.set(r, assignConfig(l.get(r), rhs))
             if isinstance(val, Error): return val
             return l.take(r)
+        else:
+            return Error(typ = "Runtime Error", value = "invalid assignment target")
     else:
         cnt: int = 0
         res = Table({})
@@ -72,6 +74,8 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             return val([kwargs.get("piped")], [])
         return val
     elif ast.typ == "RETURN":
+        if len(ast.children) == 0:
+            return Bubble(typ = "RETURN", val = Nil())
         val = interpret(ast.children[0], env)
         if isinstance(val, Error) or isinstance(val, Bubble): return val
         return Bubble(typ = "RETURN", val = val)
@@ -215,10 +219,21 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
         val = interpret(ast.children[0], env)
         if isinstance(val, Error) or isinstance(val, Bubble): return val
         while isTruthy(val):
-            res = interpret(ast.children[1], env)
-            if isinstance(res, Error) or isinstance(res, Bubble): return res if isinstance(res, Error) else res.val
+            body = interpret(ast.children[1], env)
+            if isinstance(body, Error):
+                return body
+            if isinstance(body, Bubble):
+                if body.typ == "BREAK":
+                    break
+                elif body.typ == "CONTINUE":
+                    val = interpret(ast.children[0], env)
+                    if isinstance(val, Error) or isinstance(val, Bubble): return val
+                    continue
+                else:
+                    return body
+            res = body
             val = interpret(ast.children[0], env)
-            if isinstance(val, Error) or isinstance(val, Bubble): return val if isinstance(val, Error) else val.val
+            if isinstance(val, Error) or isinstance(val, Bubble): return val
         return res
     elif ast.typ == "FOR":
         lhs = ast.children[0]
@@ -278,7 +293,12 @@ def interpret(ast: AST, env: Env = makeGlobal(), **kwargs) -> Value:
             rhs = interpret(ast.children[1], env)
             if not isinstance(rhs, (Closure, BuiltinClosure, Table)):
                 return Error(typ = 'Runtime Error', value = 'uncallable catch expression')
-            return rhs([ValError(typ = val.typ, value = val.value)], [])
+            err = Table(value = {
+                String(value = "_error_"): Number(value = 1),
+                String(value = "type"): String(value = val.typ),
+                String(value = "value"): String(value = val.value),
+            })
+            return rhs([err], [])
         else:
             return val
     elif ast.typ == "OP":

@@ -1,0 +1,104 @@
+escape_html = (s) => {
+  s = string(s);
+  s["&"] = "&amp;";
+  s["<"] = "&lt;";
+  s[">"] = "&gt;";
+  s["\""] = "&quot;";
+  s
+}
+
+inline_md = (s) => {
+  s = escape_html(s);
+
+  s[`\*\*([^*]+)\*\*`] = "<strong>\\1</strong>";
+  s[`\*([^*]+)\*`] = "<em>\\1</em>";
+  s["`"] = "";
+
+  s
+}
+
+flush_para = (out, para) => {
+  if para.len() != 0 {
+    text = para.join(" ");
+    out.push("<p>{inline_md(text)}</p>")
+  };
+  []
+}
+
+md_to_html = (md) => {
+  st = [
+    out: [],
+    para: [],
+    in_list: 0
+  ];
+
+  flush_para = () => {
+    if st.para.len() != 0 {
+      text = st.para.join(" ");
+      st.out.push("<p>{inline_md(text)}</p>");
+      st.para = []
+    }
+  };
+
+  close_list = () => {
+    if st.in_list {
+      st.out.push("</ul>");
+      st.in_list = 0
+    }
+  };
+
+  for raw in md.split("\n") {
+    line = raw.trim();
+
+    if line == "" {
+      flush_para();
+      close_list()
+    }
+    elif line =~ `^### ` {
+      flush_para();
+      close_list();
+      st.out.push("<h3>{inline_md(line.slice(4, line.len()))}</h3>")
+    }
+    elif line =~ `^## ` {
+      flush_para();
+      close_list();
+      st.out.push("<h2>{inline_md(line.slice(3, line.len()))}</h2>")
+    }
+    elif line =~ `^# ` {
+      flush_para();
+      close_list();
+      st.out.push("<h1>{inline_md(line.slice(2, line.len()))}</h1>")
+    }
+    elif line =~ `^- ` {
+      flush_para();
+
+      if !st.in_list {
+        st.out.push("<ul>");
+        st.in_list = 1
+      };
+
+      st.out.push("<li>{inline_md(line.slice(2, line.len()))}</li>")
+    }
+    else {
+      st.para.push(line)
+    }
+  };
+
+  flush_para();
+  close_list();
+
+  st.out.join("\n")
+}
+
+md = "
+# Hello
+
+This is **bold** and *italic*.
+
+- one
+- two
+- three
+"
+
+html = md_to_html(md);
+println(html)

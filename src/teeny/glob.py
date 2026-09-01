@@ -1,5 +1,5 @@
 import importlib
-from teeny.value import Env, Number, String, Table, Error, ValError, BuiltinClosure, \
+from teeny.value import Env, Number, String, Table, Error, BuiltinClosure, \
                         makeTable, makeObject, Value, Nil, Closure, copy, isTruthy
 import math
 from pathlib import Path
@@ -60,10 +60,22 @@ Math: Table = Table(value = {
     String(value = "ge"): BuiltinClosure(fn = lambda a, b: a >= b),
     String(value = "neq"): BuiltinClosure(fn = lambda a, b: a != b),
 })
+def _errArg(v):
+    return v.value if isinstance(v, String) else v
+
+def _panic(err):
+    if isinstance(err, Error):
+        return err
+    if isinstance(err, Table):
+        typ = err.take(String(value = "type"))
+        val = err.take(String(value = "value"))
+        return Error(typ = _errArg(typ), value = _errArg(val))
+    return Error(typ = "Runtime Error", value = "panic on non-error value")
+
 Err = Table(value = {
-    String(value = "_call_"): BuiltinClosure(fn = lambda typ, message: ValError(typ = typ, value = message)),
-    String(value = "panic"): BuiltinClosure(fn = lambda err: Error({}, err.typ, err.value)),
-    String(value = "raise"): BuiltinClosure(fn = lambda typ, message: Error({}, typ, message))
+    String(value = "_call_"): BuiltinClosure(fn = lambda typ, message: Error(typ = _errArg(typ), value = _errArg(message))),
+    String(value = "panic"): BuiltinClosure(fn = _panic),
+    String(value = "raise"): BuiltinClosure(fn = lambda typ, message: Error(typ = _errArg(typ), value = _errArg(message)))
 })
 
 def read(path: String, isJson = False, lines = False) -> String | Table:
@@ -74,7 +86,7 @@ def read(path: String, isJson = False, lines = False) -> String | Table:
         if isJson:
             res = json.loads(res)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     if not isJson:
         if not lines:
             return String(value = res)
@@ -98,7 +110,7 @@ def write(path: String, content: Value, isJson=False, lines=False, append=Number
         with open(pth, mode, encoding="utf8") as f:
             f.write(cont)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return content
 
 def exists(path: String) -> Number:
@@ -106,13 +118,13 @@ def exists(path: String) -> Number:
     try:
         return Number(value = int(os.path.exists(pth)))
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
 def listDir(path: String) -> Table:
     pth: str = srcPath / path.value
     try:
         lis = os.listdir(pth)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     res = Table({})
     for item in lis:
         res.append(String(value = item))
@@ -122,14 +134,14 @@ def isFile(path: String) -> Number:
     try:
         res = os.path.isfile(pth)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return Number(value = int(res))
 def isDir(path: String) -> Number:
     pth: str = srcPath / path.value
     try:
         res = os.path.isdir(pth)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return Number(value = int(res))
 def copy(src: String, dst: String) -> Nil:
     pthSrc: str = srcPath / src.value
@@ -137,7 +149,7 @@ def copy(src: String, dst: String) -> Nil:
     try:
         shutil.copy2(pthSrc, pthDst)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return Nil()
 def move(src: String, dst: String) -> Nil:
     pthSrc: str = srcPath / Path(src.value)
@@ -145,20 +157,14 @@ def move(src: String, dst: String) -> Nil:
     try:
         shutil.move(pthSrc, pthDst)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return Nil()
-def join(table: Table) -> String:
-    tab = table.toList()
-    try:
-        return String(value = os.path.join(tab))
-    except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
 def findFiles(path: String, check: Value = BuiltinClosure(fn = lambda *args: True)) -> Table:
     pth: str = srcPath / path.value
     try:
         lis = filter(lambda pth: check([String(value = str(pth))], []), os.listdir(pth))
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     res = Table({})
     for item in lis:
         res.append(String(value = item))
@@ -176,23 +182,60 @@ Fs: Table = Table(value = {
     String(value = "isDir"): BuiltinClosure(fn = isDir),
     String(value = "copy"): BuiltinClosure(fn = copy),
     String(value = "move"): BuiltinClosure(fn = move),
-    String(value = "join"): BuiltinClosure(fn = join),
-    String(value = "mkdir"): BuiltinClosure(fn = lambda path: (os.mkdir(srcPath / path.value), Nil())[-1]),
+    String(value = "mkdir"): BuiltinClosure(fn = lambda path:
+                                            (Path(srcPath / path.value).mkdir(exist_ok = True), Nil())[-1]),
     String(value = "rmdir"): BuiltinClosure(fn = lambda path: (os.rmdir(srcPath / path.value), Nil())[-1]),
     String(value = "fileSize"): BuiltinClosure(fn = lambda path: (os.path.getsize(srcPath / path.value, Nil()))[-1]),
     String(value = "findFiles"): BuiltinClosure(fn = findFiles)
+})
+
+def join(table: Table) -> String:
+    tab = makeObject(table.toList())
+    try:
+        return String(value = os.path.join(*tab))
+    except Exception as e:
+        return Error(typ = "IOError", value = str(e))
+def basename(path):
+    return String(value=os.path.basename(path.value))
+def dirname(path):
+    return String(value=os.path.dirname(path.value))
+def ext(path):
+    return String(value=os.path.splitext(path.value)[1])
+def stem(path):
+    return String(value=os.path.splitext(os.path.basename(path.value))[0])
+def absolute(path):
+    return String(value = os.path.abspath(path.value))
+def relative(path, base):
+    return String(value = os.path.relpath(path.value, base.value))
+def normalize(path):
+    return String(value = os.path.normpath(path.value))
+def parts(path):
+    ps = list(Path(path.value).parts)
+    ps = [p for p in ps if p not in ("/", "\\")]
+    return makeTable(ps)
+
+Pth: Table = Table(value = {
+    String(value = "join"): BuiltinClosure(fn = join),
+    String(value = "basename"): BuiltinClosure(fn = basename),
+    String(value = "dirname"): BuiltinClosure(fn = dirname),
+    String(value = "ext"): BuiltinClosure(fn = ext),
+    String(value = "stem"): BuiltinClosure(fn = stem),
+    String(value = "abs"): BuiltinClosure(fn = absolute),
+    String(value = "rel"): BuiltinClosure(fn = relative),
+    String(value = "norm"): BuiltinClosure(fn = normalize),
+    String(value = "parts"): BuiltinClosure(fn = parts)
 })
 
 def encode(res: Table) -> String:
     try:
         return String(value = json.dumps(makeObject(res)))
     except Exception as e:
-        return Error({}, typ = "JsonError", value = str(e))
+        return Error(typ = "JsonError", value = str(e))
 def decode(res: String) -> Table:
     try:
         return makeTable(json.loads(res.value))
     except Exception as e:
-        return Error({}, typ = "JsonError", value = str(e))
+        return Error(typ = "JsonError", value = str(e))
 Json: Table = Table(value = {
     String(value = "encode"): BuiltinClosure(fn = encode),
     String(value = "stringnify"): BuiltinClosure(fn = encode),
@@ -207,7 +250,7 @@ def HTTPGet(url: String, params: Table | Nil = Nil(), headers: Table | Nil = Nil
     try:
         r = requests.get(urlString, params = makeObject(params), headers = makeObject(headers), timeout=10)
     except Exception as e:
-        return Error({}, typ = "HTTPError", value = str(e))
+        return Error(typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -220,7 +263,7 @@ def HTTPPost(url: String, data: Table, headers: Table | Nil = Nil(), cookies: Ta
         r = requests.post(urlString, json = makeObject(data), headers = makeObject(headers), \
                           cookies = makeObject(cookies))
     except Exception as e:
-        return Error({}, typ = "HTTPError", value = str(e))
+        return Error(typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -233,7 +276,7 @@ def HTTPPatch(url: String, data: Table, headers: Table) -> Table:
     try:
         r = requests.patch(urlString, json = makeObject(data), headers = makeObject(headers))
     except Exception as e:
-        return Error({}, typ = "HTTPError", value = str(e))
+        return Error(typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -244,7 +287,7 @@ def HTTPPut(url: String, data: Table) -> Table:
     try:
         r = requests.put(urlString, json = makeObject(data))
     except Exception as e:
-        return Error({}, typ = "HTTPError", value = str(e))
+        return Error(typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -257,7 +300,7 @@ def HTTPDelete(url: String) -> Table:
     try:
         r = requests.delete(urlString)
     except Exception as e:
-        return Error({}, typ = "HTTPError", value = str(e))
+        return Error(typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -270,7 +313,7 @@ def HTTPHead(url: String) -> Table:
     try:
         r = requests.head(urlString)
     except Exception as e:
-        return Error({}, typ = "HTTPError", value = str(e))
+        return Error(typ = "HTTPError", value = str(e))
     return Table(value = {
         String(value = "status"): Number(value = r.status_code),
         String(value = "headers"): makeTable(dict(r.headers)),
@@ -340,7 +383,7 @@ def Run(command: String) -> String:
     try:
         return String(value = subprocess.run(command.value.split(), capture_output = True, text = True).stdout)
     except Exception as e:
-        return Error({}, typ = "OSError", value = str(e))
+        return Error(typ = "OSError", value = str(e))
 def getEnv(name: String) -> String | Nil:
     envPath = srcPath / ".env"
     for line in open(envPath).readlines():
@@ -360,7 +403,7 @@ def setEnv(name: String, value: String) -> Nil:
     try:
         open(envPath, "w").write(s)
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return Nil()
 Os: Table = Table(value = {
     String(value = "platform"): BuiltinClosure(fn = lambda: sys.platform),
@@ -432,7 +475,7 @@ Benchmark: Table = Table(value = {
 
 def dynamicImport(file_path: str):
     if not os.path.isfile(file_path):
-        return Error({}, typ = "Import Error", value = f"Module file {file_path} not found")
+        return Error(typ = "Import Error", value = f"Module file {file_path} not found")
     module_name = os.path.basename(file_path).replace(".py", "")
     spec = importlib.util.spec_from_file_location(module_name, file_path)
     module = importlib.util.module_from_spec(spec)
@@ -455,7 +498,7 @@ def Import(name: String, type: String = String(value = "teeny")) -> Table:
             if not os.path.isfile(gPth):
                 gPth = globalPackagePath / name.value / "index.ty"
             if not os.path.isfile(gPth):
-                return Error({}, typ = "Import Error", value = f"Module {name.value} not found")
+                return Error(typ = "Import Error", value = f"Module {name.value} not found")
             pth = gPth
     if pth in cachedModules:
         return cachedModules[pth]
@@ -476,7 +519,7 @@ def getType(val: Value) -> String:
     if isinstance(val, Number): return String(value = "number")
     if isinstance(val, Table): return String(value = "table")
     if isinstance(val, String): return String(value = "string")
-    if isinstance(val, ValError): return String(value = "error")
+    if isinstance(val, Error): return String(value = "error")
     if isinstance(val, Closure) or isinstance(val, BuiltinClosure): return String(value = "closure")
     if isinstance(val, Nil): return String(value = "nil")
     return String(value = "unknown")
@@ -487,7 +530,7 @@ def Print(*x) -> Nil:
             if isinstance(i, str): print(i, end = '')
             else: print(makeObject(i.toPrint()), end = '')
     except Exception as e:
-        return Error({}, typ = "IOError", value = str(e))
+        return Error(typ = "IOError", value = str(e))
     return Nil()
 
 def evaluate(code: String, env: Table = Table()) -> Value:
@@ -521,6 +564,7 @@ def makeGlobal() -> Env:
         "argv": makeTable(sys.argv[1:]),
         "func": Func,
         "benchmark": Benchmark,
+        "path": Pth,
         "type": BuiltinClosure(fn = getType),
         "copy": BuiltinClosure(fn = copy),
         "string": BuiltinClosure(fn = lambda x: x.toString()),

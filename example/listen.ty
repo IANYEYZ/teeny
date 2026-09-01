@@ -1,16 +1,33 @@
-print("listening!")
-http.listen(3000, (req) => {
-    print("here we are!")
-    match req.path {
-        "/ping": {
-            println("I got here!");
-            [body: "pong"]
-        },
+count = 0
+page = () => "
+<!doctype html>
+<html>
+  <body>
+    <h1>Counter: <span id='count'>{count}</span></h1>
+    <button onclick='inc()'>+1</button>
 
-        "/self":
-            http.get("http://localhost:3000/ping").json(),
+    <script>
+      async function inc() \{
+        const res = await fetch('/inc', \{ method: 'POST' \})
+        const data = await res.json()
+        document.getElementById('count').textContent = data.count
+      \}
+    </script>
+  </body>
+</html>
+"
+http.listen(3030, (req) => {
+  match [req.method, req.path] {
+    ["GET", "/"]:
+      [headers: ["content-type": "text/html"], body: page()],
 
-        _: { println("we got here!");
-            [status: 404]}
-    }
+    ["POST", "/inc"]:
+      {
+        count += 1;
+        [json: [count: count]]
+      },
+
+    _:
+      [status: 404, body: "not found"]
+  }
 })

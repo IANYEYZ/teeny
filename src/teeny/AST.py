@@ -6,8 +6,8 @@ def toString(value: Any) -> str:
     return str(value)
 
 class AST:
-    def __init__(self, typ: str, children: list["AST"] = [], value: any = None) -> None:
-        self.typ = typ; self.children = children; self.value = value
+    def __init__(self, typ: str, children: list["AST"] = None, value: any = None) -> None:
+        self.typ = typ; self.children = children if children is not None else []; self.value = value
     def toString(self, tab: int = 0) -> str:
         res = ""
         res += "    " * tab + self.typ + ' ' + (toString(self.value) if self.value != None else "") + '\n'

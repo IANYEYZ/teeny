@@ -109,6 +109,8 @@ def escapeString(s: str) -> str:
             if nxt == "\\": result.append("\\"); i += 2; continue
             if nxt == '"': result.append('"'); i += 2; continue
             if nxt == '\'': result.append('\''); i += 2; continue
+            if nxt == '{': result.append('{'); i += 2; continue
+            if nxt == '}': result.append('}'); i += 2; continue
             # leave unknown escapes untouched
         result.append(inner[i]); i += 1
     return "".join(result)
@@ -120,7 +122,7 @@ def lexString(src: str, pos: int, quoteChar: str):
     if src[pos] == quoteChar:
         res.append(Token("STRING", "", 0, 0))
         return [res, pos + 1]
-    while src[pos] != quoteChar:
+    while src[pos] != quoteChar or flag:
         if src[pos] == "{" and not flag:
             res.append(Token("STRING", escapeString(now), 0, 0))
             now = ""
@@ -147,6 +149,7 @@ def tokenize(src: str) -> list[Token]:
     while pos < n:
         if src[pos] == "\"" or src[pos] == "'":
             val = lexString(src, pos, src[pos])
+            # print(val)
             pos = val[1]
             out.extend(val[0])
         else:
