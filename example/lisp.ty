@@ -1,0 +1,14 @@
+lexer = (input) => {
+    input["("] = " ( "
+    input[")"] = " ) "
+    input.split()
+}
+
+readFromTokens = (tokens) => {
+    if tokens.len() == 0 {
+        error.raise("Lisp Error", "Unexpected EOF")
+    }
+    token = tokens.
+}
+
+parser = (code) => readFromTokens(lexer(code))

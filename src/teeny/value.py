@@ -440,8 +440,12 @@ class Table(Value):
         self.value[Number(value = self.size)] = val
         self.size += 1
         return val
-    def popE(self, ind: Number) -> Value:
+    def popE(self, *args) -> Value:
         l = self.toList(); d = self.toDict()
+        if len(args) == 0:
+            args = list(args)
+            args.append(Number(value = 0))
+        ind = args[0]
         val = l.pop(int(ind.value))
         res = Table({})
         for pos, i in enumerate(l):
@@ -760,6 +764,8 @@ class Closure:
         elif len(self.params) > 0 and isinstance(self.params[-1], list):
             lst = value[len(self.params) - 1:]
             value = value[0:len(self.params)]
+        elif len(value) < len(self.params):
+            value.extend(Nil() for _ in range(len(self.params) - len(value)))
         for pos, param in enumerate(self.params):
             from teeny.interpreter import assignVariable
             if isinstance(param, list):
