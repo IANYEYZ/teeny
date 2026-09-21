@@ -243,7 +243,9 @@ class String(Value):
         return String(value = self.value.capitalize())
     def trim(self) -> "String":
         return String(value = self.value.strip())
-    def split(self, sep: Value) -> "Table":
+    def split(self, *args) -> "Table":
+        if len(args) == 0: args = [*list(args), Nil()]
+        sep = args[0]
         if sep == Nil():
             return makeTable(self.value.split())
         elif sep == String(value = ""):

@@ -4,11 +4,55 @@ lexer = (input) => {
     input.split()
 }
 
+atom = (token) => {
+    try {
+        number(token)
+    } catch e => {
+        token
+    }
+}
+
 readFromTokens = (tokens) => {
     if tokens.len() == 0 {
         error.raise("Lisp Error", "Unexpected EOF")
     }
-    token = tokens.
+    token = tokens.pop()
+    match token {
+        "(": {
+            L = []
+            while tokens[0] != ")" {
+                L.push(readFromTokens(tokens))
+            }
+            tokens.pop()
+            L
+        },
+        ")": error.raise("Lisp Error", "Unexpected )"),
+        _: atom(token)
+    }
 }
 
+Env = (outer = nil, default = nil) => {
+    env = default;
+    self = [
+        "find": (name) => {
+            match env.has(name) {
+                1: self,
+                _: outer.find(name)
+            }
+        }
+    ]
+    self
+}
+standardEnv = () => Env(nil, [
+    "+": (a, b) => a + b,
+    "-": (a, b) => a - b,
+    "*": (a, b) => a * b,
+    "/": (a, b) => a / b,
+    "abs": (x) => abs(x)
+])
+
+eval = (ast, env = standardEnv()) => match
+
 parser = (code) => readFromTokens(lexer(code))
+
+print(parser("(+ 1 (* 2 3))"))
